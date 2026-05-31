@@ -6,6 +6,7 @@ import model.entities.Supporter;
 
 public class SupporterData {
 
+    // Mapea solo las columnas que existen en la tabla Supporter
     private Supporter map(ResultSet rs) throws SQLException {
         return new Supporter(
                 rs.getInt("id"),
@@ -14,15 +15,15 @@ public class SupporterData {
                 rs.getString("second_surname"),
                 rs.getString("email"),
                 rs.getString("password"),
-                rs.getInt("service_id"),
+                0,   // service_id se obtiene aparte via SupporterService
                 rs.getInt("supervisor_id")
         );
     }
 
     public void add(Supporter supporter) throws SQLException, ClassNotFoundException {
         String sql = "INSERT INTO Supporter "
-                + "(name, first_surname, second_surname, email, password, service_id, supervisor_id) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?)";
+                + "(name, first_surname, second_surname, email, password, supervisor_id) "
+                + "VALUES (?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DbConnection_AppSupport.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -32,12 +33,11 @@ public class SupporterData {
             stmt.setString(3, supporter.getSecondSurname());
             stmt.setString(4, supporter.getEmail());
             stmt.setString(5, supporter.getPassword());
-            stmt.setInt(6, supporter.getServiceId());
 
             if (supporter.getSupervisorId() == 0) {
-                stmt.setNull(7, Types.INTEGER);
+                stmt.setNull(6, Types.INTEGER);
             } else {
-                stmt.setInt(7, supporter.getSupervisorId());
+                stmt.setInt(6, supporter.getSupervisorId());
             }
 
             stmt.executeUpdate();
@@ -45,7 +45,8 @@ public class SupporterData {
     }
 
     public Supporter login(String email, String password) throws SQLException, ClassNotFoundException {
-        String sql = "SELECT * FROM Supporter WHERE email=? AND password=?";
+        // Login solo con columnas de Supporter — sin tocar SupporterService
+        String sql = "SELECT * FROM Supporter WHERE email = ? AND password = ?";
 
         try (Connection conn = DbConnection_AppSupport.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -55,12 +56,27 @@ public class SupporterData {
 
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    return map(rs);
+                    Supporter sp = map(rs);
+                    // Intentar obtener el service_id desde SupporterService
+                    sp.setServiceId(getServiceId(conn, sp.getId()));
+                    return sp;
                 }
             }
         }
 
         return null;
+    }
+
+    // Obtiene el service_id desde la tabla de relación
+    private int getServiceId(Connection conn, int supporterId) {
+        String sql = "SELECT TOP 1 service_id FROM SupporterService WHERE supporter_id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, supporterId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) return rs.getInt("service_id");
+            }
+        } catch (Exception ignored) {}
+        return 0;
     }
 
     public ArrayList<Supporter> getAll() throws SQLException, ClassNotFoundException {
@@ -80,7 +96,7 @@ public class SupporterData {
     }
 
     public Supporter findById(int id) throws SQLException, ClassNotFoundException {
-        String sql = "SELECT * FROM Supporter WHERE id=?";
+        String sql = "SELECT * FROM Supporter WHERE id = ?";
 
         try (Connection conn = DbConnection_AppSupport.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -88,9 +104,7 @@ public class SupporterData {
             stmt.setInt(1, id);
 
             try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return map(rs);
-                }
+                if (rs.next()) return map(rs);
             }
         }
 
@@ -99,7 +113,9 @@ public class SupporterData {
 
     public ArrayList<Supporter> getByServiceId(int serviceId) throws SQLException, ClassNotFoundException {
         ArrayList<Supporter> list = new ArrayList<>();
-        String sql = "SELECT * FROM Supporter WHERE service_id=?";
+        String sql = "SELECT s.* FROM Supporter s "
+                   + "INNER JOIN SupporterService ss ON s.id = ss.supporter_id "
+                   + "WHERE ss.service_id = ?";
 
         try (Connection conn = DbConnection_AppSupport.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -118,7 +134,7 @@ public class SupporterData {
 
     public void update(Supporter supporter) throws SQLException, ClassNotFoundException {
         String sql = "UPDATE Supporter SET name=?, first_surname=?, second_surname=?, "
-                + "email=?, password=?, service_id=?, supervisor_id=? WHERE id=?";
+                + "email=?, password=?, supervisor_id=? WHERE id=?";
 
         try (Connection conn = DbConnection_AppSupport.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -128,22 +144,20 @@ public class SupporterData {
             stmt.setString(3, supporter.getSecondSurname());
             stmt.setString(4, supporter.getEmail());
             stmt.setString(5, supporter.getPassword());
-            stmt.setInt(6, supporter.getServiceId());
 
             if (supporter.getSupervisorId() == 0) {
-                stmt.setNull(7, Types.INTEGER);
+                stmt.setNull(6, Types.INTEGER);
             } else {
-                stmt.setInt(7, supporter.getSupervisorId());
+                stmt.setInt(6, supporter.getSupervisorId());
             }
 
-            stmt.setInt(8, supporter.getId());
-
+            stmt.setInt(7, supporter.getId());
             stmt.executeUpdate();
         }
     }
 
     public void delete(int id) throws SQLException, ClassNotFoundException {
-        String sql = "DELETE FROM Supporter WHERE id=?";
+        String sql = "DELETE FROM Supporter WHERE id = ?";
 
         try (Connection conn = DbConnection_AppSupport.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
