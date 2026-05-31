@@ -6,6 +6,7 @@ import model.entities.Supervisor;
 
 public class SupervisorData {
 
+    // Mapea solo las columnas que existen en la tabla Supervisor
     private Supervisor map(ResultSet rs) throws SQLException {
         return new Supervisor(
                 rs.getInt("id"),
@@ -14,14 +15,14 @@ public class SupervisorData {
                 rs.getString("second_surname"),
                 rs.getString("email"),
                 rs.getString("password"),
-                rs.getInt("service_id")
+                0    // service_id se obtiene aparte via SupervisorService
         );
     }
 
     public void add(Supervisor supervisor) throws SQLException, ClassNotFoundException {
         String sql = "INSERT INTO Supervisor "
-                + "(name, first_surname, second_surname, email, password, service_id) "
-                + "VALUES (?, ?, ?, ?, ?, ?)";
+                + "(name, first_surname, second_surname, email, password) "
+                + "VALUES (?, ?, ?, ?, ?)";
 
         try (Connection conn = DbConnection_AppSupport.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -31,14 +32,13 @@ public class SupervisorData {
             stmt.setString(3, supervisor.getSecondSurname());
             stmt.setString(4, supervisor.getEmail());
             stmt.setString(5, supervisor.getPassword());
-            stmt.setInt(6, supervisor.getServiceId());
 
             stmt.executeUpdate();
         }
     }
 
     public Supervisor login(String email, String password) throws SQLException, ClassNotFoundException {
-        String sql = "SELECT * FROM Supervisor WHERE email=? AND password=?";
+        String sql = "SELECT * FROM Supervisor WHERE email = ? AND password = ?";
 
         try (Connection conn = DbConnection_AppSupport.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -48,12 +48,27 @@ public class SupervisorData {
 
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    return map(rs);
+                    Supervisor sv = map(rs);
+                    // Obtener service_id desde SupervisorService
+                    sv.setServiceId(getServiceId(conn, sv.getId()));
+                    return sv;
                 }
             }
         }
 
         return null;
+    }
+
+    // Obtiene el service_id desde la tabla de relación
+    private int getServiceId(Connection conn, int supervisorId) {
+        String sql = "SELECT TOP 1 service_id FROM SupervisorService WHERE supervisor_id = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, supervisorId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) return rs.getInt("service_id");
+            }
+        } catch (Exception ignored) {}
+        return 0;
     }
 
     public ArrayList<Supervisor> getAll() throws SQLException, ClassNotFoundException {
@@ -73,7 +88,7 @@ public class SupervisorData {
     }
 
     public Supervisor findById(int id) throws SQLException, ClassNotFoundException {
-        String sql = "SELECT * FROM Supervisor WHERE id=?";
+        String sql = "SELECT * FROM Supervisor WHERE id = ?";
 
         try (Connection conn = DbConnection_AppSupport.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -81,9 +96,7 @@ public class SupervisorData {
             stmt.setInt(1, id);
 
             try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return map(rs);
-                }
+                if (rs.next()) return map(rs);
             }
         }
 
@@ -92,7 +105,7 @@ public class SupervisorData {
 
     public void update(Supervisor supervisor) throws SQLException, ClassNotFoundException {
         String sql = "UPDATE Supervisor SET name=?, first_surname=?, second_surname=?, "
-                + "email=?, password=?, service_id=? WHERE id=?";
+                + "email=?, password=? WHERE id=?";
 
         try (Connection conn = DbConnection_AppSupport.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -102,15 +115,14 @@ public class SupervisorData {
             stmt.setString(3, supervisor.getSecondSurname());
             stmt.setString(4, supervisor.getEmail());
             stmt.setString(5, supervisor.getPassword());
-            stmt.setInt(6, supervisor.getServiceId());
-            stmt.setInt(7, supervisor.getId());
+            stmt.setInt(6, supervisor.getId());
 
             stmt.executeUpdate();
         }
     }
 
     public void delete(int id) throws SQLException, ClassNotFoundException {
-        String sql = "DELETE FROM Supervisor WHERE id=?";
+        String sql = "DELETE FROM Supervisor WHERE id = ?";
 
         try (Connection conn = DbConnection_AppSupport.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
