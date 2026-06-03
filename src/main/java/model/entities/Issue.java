@@ -1,4 +1,3 @@
-
 package model.entities;
 
 import java.time.LocalDateTime;
@@ -166,4 +165,3 @@ public class Issue {
                 contactPhone + ", contactEmail=" + contactEmail + ", serviceId=" + serviceId + ", supporterId=" + supporterId + ", supervisorId=" + supervisorId + '}';
     }
 }
-
