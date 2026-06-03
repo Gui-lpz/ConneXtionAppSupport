@@ -15,6 +15,7 @@ public class Issue {
     private String contactPhone;
     private String contactEmail;
     private int serviceId;
+    private String serviceName;     //exclusivamente para uso en interfaz
     private int supporterId;
     private int supervisorId;
 
@@ -24,19 +25,24 @@ public class Issue {
         this.issueTimestamp = LocalDateTime.now();
     }
 
-    public Issue(int id, String reference, String classification, String status,
-            LocalDateTime issueTimestamp, String resolutionComment,
-            int serviceId, int supporterId, int supervisorId) {
+    public Issue(int id, String reference, String classification, String status, LocalDateTime issueTimestamp, String resolutionComment, String decription, String contactAddress, String contactPhone, String contactEmail, int serviceId, String serviceName, int supporterId, int supervisorId) {
         this.id = id;
         this.reference = reference;
         this.classification = classification;
         this.status = status;
         this.issueTimestamp = issueTimestamp;
         this.resolutionComment = resolutionComment;
+        this.decription = decription;
+        this.contactAddress = contactAddress;
+        this.contactPhone = contactPhone;
+        this.contactEmail = contactEmail;
         this.serviceId = serviceId;
+        this.serviceName = serviceName;
         this.supporterId = supporterId;
         this.supervisorId = supervisorId;
     }
+
+ 
 
     public boolean isPending() {
         return "Ingresado".equalsIgnoreCase(status);
@@ -142,6 +148,14 @@ public class Issue {
         this.serviceId = serviceId;
     }
 
+    public String getServiceName() {
+        return serviceName;
+    }
+
+    public void setServiceName(String serviceName) {
+        this.serviceName = serviceName;
+    }
+
     public int getSupporterId() {
         return supporterId;
     }
@@ -160,8 +174,13 @@ public class Issue {
 
     @Override
     public String toString() {
-        return "Issue{" + "id=" + id + ", reference=" + reference + ", classification=" + classification + ", status=" + status + ", issueTimestamp=" + issueTimestamp
-                + ", resolutionComment=" + resolutionComment + ", decription=" + decription + ", contactAddress=" + contactAddress + ", contactPhone=" + 
-                contactPhone + ", contactEmail=" + contactEmail + ", serviceId=" + serviceId + ", supporterId=" + supporterId + ", supervisorId=" + supervisorId + '}';
+        return "Issue{" + "id=" + id + ", reference=" + reference + 
+                ", classification=" + classification + ", status=" + status + 
+                ", issueTimestamp=" + issueTimestamp + ", resolutionComment=" 
+                + resolutionComment + ", decription=" + decription + ", contactAddress=" 
+                + contactAddress + ", contactPhone=" + contactPhone + ", contactEmail=" 
+                + contactEmail + ", serviceId=" + serviceId + ", serviceName=" + serviceName 
+                + ", supporterId=" + supporterId + ", supervisorId=" + supervisorId + '}';
     }
+
 }

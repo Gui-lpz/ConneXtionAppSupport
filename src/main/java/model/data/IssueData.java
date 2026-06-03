@@ -18,7 +18,12 @@ public class IssueData {
         if (rs.wasNull()) {
             supervisorId = 0;
         }
-
+        String serviceName = null;
+        try {
+            serviceName = rs.getString("service_name");
+        } catch (SQLException e) {
+            // Si la consulta no incluyó simplemente  queda como null
+        }
         return new Issue(
                 rs.getInt("id"),
                 rs.getString("reference"),
@@ -26,7 +31,12 @@ public class IssueData {
                 rs.getString("status"),
                 timestamp != null ? timestamp.toLocalDateTime() : null,
                 rs.getString("resolution_comment"),
+                rs.getString("description"),
+                rs.getString("contact_address"),
+                rs.getString("contact_phone"),
+                rs.getString("contact_email"),
                 rs.getInt("service_id"),
+                serviceName, // Agregado exclusivamente para la interfaz
                 supporterId,
                 supervisorId
         );
@@ -35,42 +45,44 @@ public class IssueData {
     public void add(Issue issue) throws SQLException, ClassNotFoundException {
         String sql = "INSERT INTO Issue "
                 + "(reference, classification, status, issue_timestamp, resolution_comment, "
-                + "service_id, supporter_id, supervisor_id) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                + "service_id, supporter_id, supervisor_id, description, contact_address, contact_phone, contact_email) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-        try (Connection conn = DbConnection_AppSupport.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (Connection conn = DbConnection_AppSupport.getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
 
-            stmt.setString(1, issue.getReference());
-            stmt.setString(2, issue.getClassification());
-            stmt.setString(3, issue.getStatus());
-            stmt.setTimestamp(4, Timestamp.valueOf(issue.getIssueTimestamp()));
-            stmt.setString(5, issue.getResolutionComment());
-            stmt.setInt(6, issue.getServiceId());
+            statement.setString(1, issue.getReference());
+            statement.setString(2, issue.getClassification());
+            statement.setString(3, issue.getStatus());
+            statement.setTimestamp(4, Timestamp.valueOf(issue.getIssueTimestamp()));
+            statement.setString(5, issue.getResolutionComment());
+            statement.setInt(6, issue.getServiceId());
 
             if (issue.getSupporterId() == 0) {
-                stmt.setNull(7, Types.INTEGER);
+                statement.setNull(7, Types.INTEGER);
             } else {
-                stmt.setInt(7, issue.getSupporterId());
+                statement.setInt(7, issue.getSupporterId());
             }
 
             if (issue.getSupervisorId() == 0) {
-                stmt.setNull(8, Types.INTEGER);
+                statement.setNull(8, Types.INTEGER);
             } else {
-                stmt.setInt(8, issue.getSupervisorId());
+                statement.setInt(8, issue.getSupervisorId());
             }
-
-            stmt.executeUpdate();
+            statement.setString(9, issue.getDecription());
+            statement.setString(10, issue.getContactAddress());
+            statement.setString(11, issue.getContactPhone());
+            statement.setString(12, issue.getContactEmail());
+            statement.executeUpdate();
         }
     }
 
     public ArrayList<Issue> getAll() throws SQLException, ClassNotFoundException {
         ArrayList<Issue> list = new ArrayList<>();
-        String sql = "SELECT * FROM Issue ORDER BY issue_timestamp ASC";
-
-        try (Connection conn = DbConnection_AppSupport.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
+        String sql = "SELECT i.*, s.name AS service_name "
+                + "FROM Issue i "
+                + "LEFT JOIN Service s ON i.service_id = s.id "
+                + "ORDER BY i.issue_timestamp ASC";
+        try (Connection conn = DbConnection_AppSupport.getConnection(); Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
 
             while (rs.next()) {
                 list.add(map(rs));
@@ -81,10 +93,12 @@ public class IssueData {
     }
 
     public Issue findById(int id) throws SQLException, ClassNotFoundException {
-        String sql = "SELECT * FROM Issue WHERE id=?";
-
-        try (Connection conn = DbConnection_AppSupport.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        //String sql = "SELECT * FROM Issue WHERE id=?";
+        String sql = "SELECT i.*, s.name AS service_name "
+                + "FROM Issue i "
+                + "LEFT JOIN Service s ON i.service_id = s.id "
+                + "WHERE i.id=?";
+        try (Connection conn = DbConnection_AppSupport.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, id);
 
@@ -101,8 +115,7 @@ public class IssueData {
     public void assignSupporter(int issueId, int supporterId, int supervisorId) throws SQLException, ClassNotFoundException {
         String sql = "UPDATE Issue SET supporter_id=?, supervisor_id=?, status=? WHERE id=?";
 
-        try (Connection conn = DbConnection_AppSupport.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (Connection conn = DbConnection_AppSupport.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, supporterId);
             stmt.setInt(2, supervisorId);
@@ -116,8 +129,7 @@ public class IssueData {
     public void startProcess(int issueId) throws SQLException, ClassNotFoundException {
         String sql = "UPDATE Issue SET status=? WHERE id=?";
 
-        try (Connection conn = DbConnection_AppSupport.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (Connection conn = DbConnection_AppSupport.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, "En Progreso");
             stmt.setInt(2, issueId);
@@ -129,8 +141,7 @@ public class IssueData {
     public void resolveIssue(int issueId, String resolutionComment) throws SQLException, ClassNotFoundException {
         String sql = "UPDATE Issue SET status=?, resolution_comment=? WHERE id=?";
 
-        try (Connection conn = DbConnection_AppSupport.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (Connection conn = DbConnection_AppSupport.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, "Resuelto");
             stmt.setString(2, resolutionComment);
@@ -144,8 +155,7 @@ public class IssueData {
         String sql = "UPDATE Issue SET reference=?, classification=?, status=?, issue_timestamp=?, "
                 + "resolution_comment=?, service_id=?, supporter_id=?, supervisor_id=? WHERE id=?";
 
-        try (Connection conn = DbConnection_AppSupport.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (Connection conn = DbConnection_AppSupport.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, issue.getReference());
             stmt.setString(2, issue.getClassification());
@@ -175,8 +185,7 @@ public class IssueData {
     public void delete(int id) throws SQLException, ClassNotFoundException {
         String sql = "DELETE FROM Issue WHERE id=?";
 
-        try (Connection conn = DbConnection_AppSupport.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (Connection conn = DbConnection_AppSupport.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, id);
             stmt.executeUpdate();
