@@ -1,3 +1,4 @@
+
 package model.entities;
 
 import java.time.LocalDateTime;
@@ -184,3 +185,4 @@ public class Issue {
     }
 
 }
+
