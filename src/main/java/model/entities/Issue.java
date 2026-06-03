@@ -1,3 +1,4 @@
+
 package model.entities;
 
 import java.time.LocalDateTime;
@@ -164,4 +165,4 @@ public class Issue {
                 + ", resolutionComment=" + resolutionComment + ", decription=" + decription + ", contactAddress=" + contactAddress + ", contactPhone=" + 
                 contactPhone + ", contactEmail=" + contactEmail + ", serviceId=" + serviceId + ", supporterId=" + supporterId + ", supervisorId=" + supervisorId + '}';
     }
-}
+
