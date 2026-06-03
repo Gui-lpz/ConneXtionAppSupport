@@ -1,3 +1,4 @@
+
 package model.entities;
 
 import java.time.LocalDateTime;
@@ -10,6 +11,10 @@ public class Issue {
     private String status;
     private LocalDateTime issueTimestamp;
     private String resolutionComment;
+    private String decription;
+    private String contactAddress;
+    private String contactPhone;
+    private String contactEmail;
     private int serviceId;
     private int supporterId;
     private int supervisorId;
@@ -21,8 +26,8 @@ public class Issue {
     }
 
     public Issue(int id, String reference, String classification, String status,
-                 LocalDateTime issueTimestamp, String resolutionComment,
-                 int serviceId, int supporterId, int supervisorId) {
+            LocalDateTime issueTimestamp, String resolutionComment,
+            int serviceId, int supporterId, int supervisorId) {
         this.id = id;
         this.reference = reference;
         this.classification = classification;
@@ -58,7 +63,6 @@ public class Issue {
         this.id = id;
     }
 
-
     public String getReference() {
         return reference;
     }
@@ -66,7 +70,6 @@ public class Issue {
     public void setReference(String reference) {
         this.reference = reference;
     }
-
 
     public String getClassification() {
         return classification;
@@ -76,7 +79,6 @@ public class Issue {
         this.classification = classification;
     }
 
-
     public String getStatus() {
         return status;
     }
@@ -84,7 +86,6 @@ public class Issue {
     public void setStatus(String status) {
         this.status = status;
     }
-
 
     public LocalDateTime getIssueTimestamp() {
         return issueTimestamp;
@@ -94,7 +95,6 @@ public class Issue {
         this.issueTimestamp = issueTimestamp;
     }
 
-
     public String getResolutionComment() {
         return resolutionComment;
     }
@@ -103,6 +103,37 @@ public class Issue {
         this.resolutionComment = resolutionComment;
     }
 
+    public String getDecription() {
+        return decription;
+    }
+
+    public void setDecription(String decription) {
+        this.decription = decription;
+    }
+
+    public String getContactAddress() {
+        return contactAddress;
+    }
+
+    public void setContactAddress(String contactAddress) {
+        this.contactAddress = contactAddress;
+    }
+
+    public String getContactPhone() {
+        return contactPhone;
+    }
+
+    public void setContactPhone(String contactPhone) {
+        this.contactPhone = contactPhone;
+    }
+
+    public String getContactEmail() {
+        return contactEmail;
+    }
+
+    public void setContactEmail(String contactEmail) {
+        this.contactEmail = contactEmail;
+    }
 
     public int getServiceId() {
         return serviceId;
@@ -112,7 +143,6 @@ public class Issue {
         this.serviceId = serviceId;
     }
 
-
     public int getSupporterId() {
         return supporterId;
     }
@@ -120,7 +150,6 @@ public class Issue {
     public void setSupporterId(int supporterId) {
         this.supporterId = supporterId;
     }
-
 
     public int getSupervisorId() {
         return supervisorId;
@@ -132,11 +161,9 @@ public class Issue {
 
     @Override
     public String toString() {
-        return "Issue{" + "id=" + id + ", reference=" + reference
-                + ", classification=" + classification + ", status=" + status
-                + ", issueTimestamp=" + issueTimestamp + ", resolutionComment="
-                + resolutionComment + ", serviceId=" + serviceId
-                + ", supporterId=" + supporterId + ", supervisorId="
-                + supervisorId + '}';
+        return "Issue{" + "id=" + id + ", reference=" + reference + ", classification=" + classification + ", status=" + status + ", issueTimestamp=" + issueTimestamp
+                + ", resolutionComment=" + resolutionComment + ", decription=" + decription + ", contactAddress=" + contactAddress + ", contactPhone=" + 
+                contactPhone + ", contactEmail=" + contactEmail + ", serviceId=" + serviceId + ", supporterId=" + supporterId + ", supervisorId=" + supervisorId + '}';
     }
 }
+
