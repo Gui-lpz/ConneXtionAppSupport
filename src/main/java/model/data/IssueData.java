@@ -32,7 +32,7 @@ public class IssueData {
                 rs.getString("status"),
                 timestamp != null ? timestamp.toLocalDateTime() : null,
                 rs.getString("resolution_comment"),
-                rs.getString("description"),
+                null,
                 rs.getString("contact_address"),
                 rs.getString("contact_phone"),
                 rs.getString("contact_email"),
@@ -69,7 +69,7 @@ public class IssueData {
             } else {
                 statement.setInt(8, issue.getSupervisorId());
             }
-            statement.setString(9, issue.getDecription());
+            statement.setString(9, issue.getDescription());
             statement.setString(10, issue.getContactAddress());
             statement.setString(11, issue.getContactPhone());
             statement.setString(12, issue.getContactEmail());
