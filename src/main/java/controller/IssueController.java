@@ -16,25 +16,36 @@ import model.entities.Issue;
 
 @WebServlet("/api/issues")
 public class IssueController extends HttpServlet {
-    
+
     private final IssueData issueData = new IssueData();
 
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) 
+    protected void doOptions(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         
+        response.setHeader("Access-Control-Allow-Origin", "*");
+        response.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        
+        response.setStatus(HttpServletResponse.SC_OK);
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
         response.setHeader("Access-Control-Allow-Origin", "*"); // Permite peticiones desde el frontend
-        
+
         PrintWriter out = response.getWriter();
-        
+
         try {
             ArrayList<Issue> issuesList = issueData.getAll();
             String jsonResponse = convertListToJson(issuesList);
             out.print(jsonResponse);
             out.flush();
-            
+
         } catch (SQLException | ClassNotFoundException e) {
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             out.print("{\"error\": \"Error al cargar los reportes: " + e.getMessage() + "\"}");
@@ -44,7 +55,7 @@ public class IssueController extends HttpServlet {
     private String convertListToJson(ArrayList<Issue> list) {
         StringBuilder json = new StringBuilder();
         json.append("[");
-        
+
         for (int i = 0; i < list.size(); i++) {
             Issue issue = list.get(i);
             json.append("{");
@@ -54,7 +65,6 @@ public class IssueController extends HttpServlet {
             json.append("\"status\":\"").append(escapeJson(issue.getStatus())).append("\",");
             json.append("\"issueTimestamp\":\"").append(issue.getIssueTimestamp() != null ? issue.getIssueTimestamp().toString() : "").append("\",");
             json.append("\"resolutionComment\":\"").append(escapeJson(issue.getResolutionComment())).append("\",");
-            json.append("\"description\":\"").append(escapeJson(issue.getDecription())).append("\","); 
             json.append("\"contactAddress\":\"").append(escapeJson(issue.getContactAddress())).append("\",");
             json.append("\"contactPhone\":\"").append(escapeJson(issue.getContactPhone())).append("\",");
             json.append("\"contactEmail\":\"").append(escapeJson(issue.getContactEmail())).append("\",");
@@ -63,21 +73,23 @@ public class IssueController extends HttpServlet {
             json.append("\"supporterId\":").append(issue.getSupporterId()).append(",");
             json.append("\"supervisorId\":").append(issue.getSupervisorId());
             json.append("}");
-            
+
             if (i < list.size() - 1) {
                 json.append(",");
             }
         }
-        
+
         json.append("]");
         return json.toString();
     }
 
     private String escapeJson(String value) {
-        if (value == null) return "";
+        if (value == null) {
+            return "";
+        }
         return value.replace("\\", "\\\\")
-                    .replace("\"", "\\\"")
-                    .replace("\n", "\\n")
-                    .replace("\r", "\\r");
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r");
     }
 }

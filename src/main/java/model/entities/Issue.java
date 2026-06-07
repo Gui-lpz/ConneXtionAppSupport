@@ -10,7 +10,7 @@ public class Issue {
     private String status;
     private LocalDateTime issueTimestamp;
     private String resolutionComment;
-    private String decription;
+    private String description;
     private String contactAddress;
     private String contactPhone;
     private String contactEmail;
@@ -32,7 +32,7 @@ public class Issue {
         this.issueTimestamp = issueTimestamp;
         this.resolutionComment = resolutionComment;
         this.serviceId = serviceId;
-        this.decription = decription;
+        this.description = decription;
         this.contactAddress = contactAddress;
         this.contactPhone = contactPhone;
         this.contactEmail = contactEmail;
@@ -105,12 +105,12 @@ public class Issue {
         this.resolutionComment = resolutionComment;
     }
 
-    public String getDecription() {
-        return decription;
+    public String getDescription() {
+        return description;
     }
 
-    public void setDecription(String decription) {
-        this.decription = decription;
+    public void setDescription(String decription) {
+        this.description = decription;
     }
 
     public String getContactAddress() {
@@ -174,7 +174,7 @@ public class Issue {
         return "Issue{" + "id=" + id + ", reference=" + reference + 
                 ", classification=" + classification + ", status=" + status + 
                 ", issueTimestamp=" + issueTimestamp + ", resolutionComment=" 
-                + resolutionComment + ", decription=" + decription + ", contactAddress=" 
+                + resolutionComment + ", decription=" + description + ", contactAddress=" 
                 + contactAddress + ", contactPhone=" + contactPhone + ", contactEmail=" 
                 + contactEmail + ", serviceId=" + serviceId + ", serviceName=" + serviceName 
                 + ", supporterId=" + supporterId + ", supervisorId=" + supervisorId + '}';
