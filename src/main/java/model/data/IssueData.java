@@ -1,4 +1,3 @@
-
 package model.data;
 
 import java.sql.*;
@@ -33,9 +32,9 @@ public class IssueData {
                 timestamp != null ? timestamp.toLocalDateTime() : null,
                 rs.getString("resolution_comment"),
                 null,
-                null, 
-                null, 
-                null, 
+                null,
+                null,
+                null,
                 rs.getInt("service_id"),
                 serviceName, // Agregado exclusivamente para la interfaz
                 supporterId,
@@ -193,9 +192,8 @@ public class IssueData {
         }
     }
 
-    
-    private static final String CLOSED_STATUS_FILTER =
-            "i.status NOT IN ('Resuelto', 'Finished', 'Terminado')";
+    private static final String CLOSED_STATUS_FILTER
+            = "i.status NOT IN ('Resuelto', 'Finished', 'Terminado')";
 
     //no asignados y no resueltos
     public ArrayList<Issue> getAvailableIssuesBySupporterId(int supporterId)
@@ -210,8 +208,7 @@ public class IssueData {
                 + "AND " + CLOSED_STATUS_FILTER + " "
                 + "ORDER BY i.issue_timestamp ASC";
 
-        try (Connection conn = DbConnection_AppSupport.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (Connection conn = DbConnection_AppSupport.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, supporterId);
             stmt.setInt(2, supporterId);
@@ -236,8 +233,7 @@ public class IssueData {
                 + "WHERE i.supporter_id = ? "
                 + "ORDER BY i.issue_timestamp ASC";
 
-        try (Connection conn = DbConnection_AppSupport.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (Connection conn = DbConnection_AppSupport.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, supporterId);
 
@@ -256,8 +252,7 @@ public class IssueData {
             throws SQLException, ClassNotFoundException {
         String sql = "SELECT 1 FROM SupporterService WHERE supporter_id = ? AND service_id = ?";
 
-        try (Connection conn = DbConnection_AppSupport.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (Connection conn = DbConnection_AppSupport.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, supporterId);
             stmt.setInt(2, serviceId);
@@ -273,8 +268,7 @@ public class IssueData {
             throws SQLException, ClassNotFoundException {
         String sql = "UPDATE Issue SET supporter_id=? WHERE id=?";
 
-        try (Connection conn = DbConnection_AppSupport.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (Connection conn = DbConnection_AppSupport.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, supporterId);
             stmt.setInt(2, issueId);
@@ -285,12 +279,11 @@ public class IssueData {
 
     // editar el estado del issue
     public void updateAssignedIssue(int issueId, String classification,
-                                    String status, String resolutionComment)
+            String status, String resolutionComment)
             throws SQLException, ClassNotFoundException {
         String sql = "UPDATE Issue SET classification=?, status=?, resolution_comment=? WHERE id=?";
 
-        try (Connection conn = DbConnection_AppSupport.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (Connection conn = DbConnection_AppSupport.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, classification);
             stmt.setString(2, status);
@@ -299,5 +292,53 @@ public class IssueData {
 
             stmt.executeUpdate();
         }
+    }
+
+    public ArrayList<Issue> getPendingByServiceId(int serviceId)
+            throws SQLException, ClassNotFoundException {
+
+        ArrayList<Issue> list = new ArrayList<>();
+        String sql = "SELECT i.*, s.name AS service_name "
+                + "FROM Issue i "
+                + "LEFT JOIN Service s ON i.service_id = s.id "
+                + "WHERE i.service_id = ? AND i.status = 'Ingresado' "
+                + "ORDER BY i.issue_timestamp ASC";
+
+        try (Connection conn = DbConnection_AppSupport.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, serviceId);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    list.add(map(rs));
+                }
+            }
+        }
+
+        return list;
+    }
+
+    public ArrayList<Issue> getBySupporterId(int supporterId)
+            throws SQLException, ClassNotFoundException {
+
+        ArrayList<Issue> list = new ArrayList<>();
+        String sql = "SELECT i.*, s.name AS service_name "
+                + "FROM Issue i "
+                + "LEFT JOIN Service s ON i.service_id = s.id "
+                + "WHERE i.supporter_id = ? "
+                + "ORDER BY i.issue_timestamp ASC";
+
+        try (Connection conn = DbConnection_AppSupport.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, supporterId);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    list.add(map(rs));
+                }
+            }
+        }
+
+        return list;
     }
 }
