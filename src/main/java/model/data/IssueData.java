@@ -33,9 +33,9 @@ public class IssueData {
                 timestamp != null ? timestamp.toLocalDateTime() : null,
                 rs.getString("resolution_comment"),
                 null,
-                rs.getString("contact_address"),
-                rs.getString("contact_phone"),
-                rs.getString("contact_email"),
+                null, 
+                null, 
+                null, 
                 rs.getInt("service_id"),
                 serviceName, // Agregado exclusivamente para la interfaz
                 supporterId,
@@ -189,6 +189,114 @@ public class IssueData {
         try (Connection conn = DbConnection_AppSupport.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, id);
+            stmt.executeUpdate();
+        }
+    }
+
+    
+    private static final String CLOSED_STATUS_FILTER =
+            "i.status NOT IN ('Resuelto', 'Finished', 'Terminado')";
+
+    //no asignados y no resueltos
+    public ArrayList<Issue> getAvailableIssuesBySupporterId(int supporterId)
+            throws SQLException, ClassNotFoundException {
+        ArrayList<Issue> list = new ArrayList<>();
+        String sql = "SELECT i.*, s.name AS service_name "
+                + "FROM Issue i "
+                + "INNER JOIN SupporterService ss ON ss.service_id = i.service_id "
+                + "LEFT JOIN Service s ON i.service_id = s.id "
+                + "WHERE ss.supporter_id = ? "
+                + "AND (i.supporter_id IS NULL OR i.supporter_id = ?) "
+                + "AND " + CLOSED_STATUS_FILTER + " "
+                + "ORDER BY i.issue_timestamp ASC";
+
+        try (Connection conn = DbConnection_AppSupport.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, supporterId);
+            stmt.setInt(2, supporterId);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    list.add(map(rs));
+                }
+            }
+        }
+
+        return list;
+    }
+
+    //todos los issues de un suportista
+    public ArrayList<Issue> getIssuesBySupporterId(int supporterId)
+            throws SQLException, ClassNotFoundException {
+        ArrayList<Issue> list = new ArrayList<>();
+        String sql = "SELECT i.*, s.name AS service_name "
+                + "FROM Issue i "
+                + "LEFT JOIN Service s ON i.service_id = s.id "
+                + "WHERE i.supporter_id = ? "
+                + "ORDER BY i.issue_timestamp ASC";
+
+        try (Connection conn = DbConnection_AppSupport.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, supporterId);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    list.add(map(rs));
+                }
+            }
+        }
+
+        return list;
+    }
+
+    // validar que el servicio es el del suportista
+    public boolean supporterHasService(int supporterId, int serviceId)
+            throws SQLException, ClassNotFoundException {
+        String sql = "SELECT 1 FROM SupporterService WHERE supporter_id = ? AND service_id = ?";
+
+        try (Connection conn = DbConnection_AppSupport.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, supporterId);
+            stmt.setInt(2, serviceId);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next();
+            }
+        }
+    }
+
+    // asignarse el issue
+    public void assignIssueToSupporter(int issueId, int supporterId)
+            throws SQLException, ClassNotFoundException {
+        String sql = "UPDATE Issue SET supporter_id=? WHERE id=?";
+
+        try (Connection conn = DbConnection_AppSupport.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, supporterId);
+            stmt.setInt(2, issueId);
+
+            stmt.executeUpdate();
+        }
+    }
+
+    // editar el estado del issue
+    public void updateAssignedIssue(int issueId, String classification,
+                                    String status, String resolutionComment)
+            throws SQLException, ClassNotFoundException {
+        String sql = "UPDATE Issue SET classification=?, status=?, resolution_comment=? WHERE id=?";
+
+        try (Connection conn = DbConnection_AppSupport.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, classification);
+            stmt.setString(2, status);
+            stmt.setString(3, resolutionComment);
+            stmt.setInt(4, issueId);
+
             stmt.executeUpdate();
         }
     }
