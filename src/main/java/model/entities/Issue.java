@@ -10,7 +10,12 @@ public class Issue {
     private String status;
     private LocalDateTime issueTimestamp;
     private String resolutionComment;
+    private String description;
+    private String contactAddress;
+    private String contactPhone;
+    private String contactEmail;
     private int serviceId;
+    private String serviceName;
     private int supporterId;
     private int supervisorId;
 
@@ -22,14 +27,22 @@ public class Issue {
 
     public Issue(int id, String reference, String classification, String status,
                  LocalDateTime issueTimestamp, String resolutionComment,
-                 int serviceId, int supporterId, int supervisorId) {
+                 String description, String contactAddress, String contactPhone,
+                 String contactEmail, int serviceId, String serviceName,
+                 int supporterId, int supervisorId) {
+
         this.id = id;
         this.reference = reference;
         this.classification = classification;
         this.status = status;
         this.issueTimestamp = issueTimestamp;
         this.resolutionComment = resolutionComment;
+        this.description = description;
+        this.contactAddress = contactAddress;
+        this.contactPhone = contactPhone;
+        this.contactEmail = contactEmail;
         this.serviceId = serviceId;
+        this.serviceName = serviceName;
         this.supporterId = supporterId;
         this.supervisorId = supervisorId;
     }
@@ -104,12 +117,57 @@ public class Issue {
     }
 
 
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+
+    public String getContactAddress() {
+        return contactAddress;
+    }
+
+    public void setContactAddress(String contactAddress) {
+        this.contactAddress = contactAddress;
+    }
+
+
+    public String getContactPhone() {
+        return contactPhone;
+    }
+
+    public void setContactPhone(String contactPhone) {
+        this.contactPhone = contactPhone;
+    }
+
+
+    public String getContactEmail() {
+        return contactEmail;
+    }
+
+    public void setContactEmail(String contactEmail) {
+        this.contactEmail = contactEmail;
+    }
+
+
     public int getServiceId() {
         return serviceId;
     }
 
     public void setServiceId(int serviceId) {
         this.serviceId = serviceId;
+    }
+
+
+    public String getServiceName() {
+        return serviceName;
+    }
+
+    public void setServiceName(String serviceName) {
+        this.serviceName = serviceName;
     }
 
 
@@ -132,11 +190,21 @@ public class Issue {
 
     @Override
     public String toString() {
-        return "Issue{" + "id=" + id + ", reference=" + reference
-                + ", classification=" + classification + ", status=" + status
-                + ", issueTimestamp=" + issueTimestamp + ", resolutionComment="
-                + resolutionComment + ", serviceId=" + serviceId
-                + ", supporterId=" + supporterId + ", supervisorId="
-                + supervisorId + '}';
+        return "Issue{"
+                + "id=" + id
+                + ", reference='" + reference + '\''
+                + ", classification='" + classification + '\''
+                + ", status='" + status + '\''
+                + ", issueTimestamp=" + issueTimestamp
+                + ", resolutionComment='" + resolutionComment + '\''
+                + ", description='" + description + '\''
+                + ", contactAddress='" + contactAddress + '\''
+                + ", contactPhone='" + contactPhone + '\''
+                + ", contactEmail='" + contactEmail + '\''
+                + ", serviceId=" + serviceId
+                + ", serviceName='" + serviceName + '\''
+                + ", supporterId=" + supporterId
+                + ", supervisorId=" + supervisorId
+                + '}';
     }
 }

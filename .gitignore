@@ -1,0 +1,33 @@
+# --- COMPILACIÓN Y SALIDA ---
+/target/
+/build/
+/dist/
+/nbdist/
+/nbbuild/
+
+# --- CREDENCIALES / CONFIGURACIÓN LOCAL ---
+.env
+config.properties
+db.properties
+*.properties
+credentials.txt
+
+# --- IDEs ---
+# NetBeans
+nbproject/private/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Eclipse
+.settings/
+.project
+.classpath
+
+# --- ARCHIVOS DEL SISTEMA ---
+.DS_Store
+Thumbs.db
+*.log
