@@ -61,9 +61,12 @@ public class IssueController extends HttpServlet {
             json.append("{");
             json.append("\"id\":").append(issue.getId()).append(",");
             json.append("\"reference\":\"").append(escapeJson(issue.getReference())).append("\",");
+            json.append("\"description\":\"").append(escapeJson(issue.getDescription())).append("\",");
             json.append("\"classification\":\"").append(escapeJson(issue.getClassification())).append("\",");
             json.append("\"status\":\"").append(escapeJson(issue.getStatus())).append("\",");
-            json.append("\"issueTimestamp\":\"").append(issue.getIssueTimestamp() != null ? issue.getIssueTimestamp().toString() : "").append("\",");
+            json.append("\"issueTimestamp\":\"")
+                    .append(issue.getIssueTimestamp() != null ? issue.getIssueTimestamp().toString() : "")
+                    .append("\",");
             json.append("\"resolutionComment\":\"").append(escapeJson(issue.getResolutionComment())).append("\",");
             json.append("\"contactAddress\":\"").append(escapeJson(issue.getContactAddress())).append("\",");
             json.append("\"contactPhone\":\"").append(escapeJson(issue.getContactPhone())).append("\",");
