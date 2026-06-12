@@ -45,8 +45,8 @@ public class IssueData {
     public void add(Issue issue) throws SQLException, ClassNotFoundException {
         String sql = "INSERT INTO Issue "
                 + "(reference, classification, status, issue_timestamp, resolution_comment, "
-                + "service_id, supporter_id, supervisor_id, description, contact_address, contact_phone, contact_email) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                + "service_id, supporter_id, supervisor_id) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DbConnection_AppSupport.getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
 
@@ -68,10 +68,6 @@ public class IssueData {
             } else {
                 statement.setInt(8, issue.getSupervisorId());
             }
-            statement.setString(9, issue.getDescription());
-            statement.setString(10, issue.getContactAddress());
-            statement.setString(11, issue.getContactPhone());
-            statement.setString(12, issue.getContactEmail());
             statement.executeUpdate();
         }
     }
