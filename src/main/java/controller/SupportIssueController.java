@@ -75,7 +75,6 @@ public class SupportIssueController extends HttpServlet {
         PrintWriter out = resp.getWriter();
 
         String[] parts = pathParts(req);
-        // Expected: {issueId}/{action}
         if (parts.length < 2) {
             writeError(resp, out, HttpServletResponse.SC_NOT_FOUND, "Unknown route.");
             return;
@@ -100,7 +99,6 @@ public class SupportIssueController extends HttpServlet {
 
     @Override
     protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        // The update route also accepts PUT
         doPost(req, resp);
     }
 
@@ -125,7 +123,7 @@ public class SupportIssueController extends HttpServlet {
                 return;
             }
 
-            // Already assigned to a different supporter
+           
             if (issue.getSupporterId() != 0 && issue.getSupporterId() != supporterId) {
                 writeError(resp, out, HttpServletResponse.SC_CONFLICT,
                         "This issue is already assigned to another supporter.");
@@ -209,7 +207,6 @@ public class SupportIssueController extends HttpServlet {
         setCors(resp);
     }
 
-    // Splits the trailing path (e.g. "/5/assign") into ["5", "assign"]
     private String[] pathParts(HttpServletRequest req) {
         String pathInfo = req.getPathInfo();
         if (pathInfo == null || pathInfo.isEmpty() || "/".equals(pathInfo)) {
