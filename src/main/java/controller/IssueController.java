@@ -22,11 +22,11 @@ public class IssueController extends HttpServlet {
     @Override
     protected void doOptions(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        
+
         response.setHeader("Access-Control-Allow-Origin", "*");
         response.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
         response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-        
+
         response.setStatus(HttpServletResponse.SC_OK);
     }
 
@@ -37,15 +37,34 @@ public class IssueController extends HttpServlet {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
         response.setHeader("Access-Control-Allow-Origin", "*"); // Permite peticiones desde el frontend
+        String role = request.getParameter("role");
+        String userIdStr = request.getParameter("userId");
 
         PrintWriter out = response.getWriter();
-
         try {
+            ArrayList<Issue> issuesList;
+
+            // Lógica de filtrado basada en el rol del usuario
+            if ("SUPERVISOR".equalsIgnoreCase(role)) {
+                // El supervisor ve TODOS los tiquetes
+                issuesList = issueData.getAll();
+            } else if ("SUPPORT".equalsIgnoreCase(role) && userIdStr != null) {
+                // El soportista solo ve LOS SUYOS usando tu método existente
+                int userId = Integer.parseInt(userIdStr);
+                issuesList = issueData.getBySupporterId(userId);
+            } else {
+                // Por seguridad, si no es ninguno, devolvemos lista vacía
+                issuesList = new ArrayList<>();
+            }
+
+            // Convertimos a JSON y enviamos
+            out.print(convertListToJson(issuesList));
+            out.flush();
+            /*try {
             ArrayList<Issue> issuesList = issueData.getAll();
             String jsonResponse = convertListToJson(issuesList);
             out.print(jsonResponse);
-            out.flush();
-
+            out.flush();*/
         } catch (SQLException | ClassNotFoundException e) {
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             out.print("{\"error\": \"Error al cargar los reportes: " + e.getMessage() + "\"}");

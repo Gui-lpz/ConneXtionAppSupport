@@ -86,7 +86,6 @@ public class NotificationController extends HttpServlet {
                     Map.of("error", "Supervisor no encontrado con id: " + supervisorId));
             return;
         }
-        // Solicitudes en estado "Ingresado" del servicio del supervisor
         ArrayList<Issue> pendingIssues = issueData.getPendingByServiceId(supervisor.getServiceId());
         List<Map<String, Object>> result = new ArrayList<>();
         for (Issue issue : pendingIssues) {
@@ -122,7 +121,6 @@ public class NotificationController extends HttpServlet {
         mapper.writeValue(response.getWriter(), result);
     }
 
-    // Vista del supervisor: solicitudes nuevas que requieren ser asignadas.
     private Map<String, Object> buildSupervisorNotificationDto(Issue issue) {
         Map<String, Object> dto = new LinkedHashMap<>();
         dto.put("id", issue.getId());
@@ -138,7 +136,6 @@ public class NotificationController extends HttpServlet {
         return dto;
     }
 
-    //Vista del soportista: sus casos asignados con el estado actual.
     private Map<String, Object> buildSupporterIssueDto(Issue issue) {
         Map<String, Object> dto = new LinkedHashMap<>();
         dto.put("id", issue.getId());
