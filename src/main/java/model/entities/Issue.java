@@ -18,6 +18,7 @@ public class Issue {
     private String serviceName;
     private int supporterId;
     private int supervisorId;
+    private String issueDescription; 
 
     public Issue() {
         this.classification = "Media";
@@ -186,6 +187,15 @@ public class Issue {
 
     public void setSupervisorId(int supervisorId) {
         this.supervisorId = supervisorId;
+    }
+
+
+    public String getIssueDescription() {
+        return issueDescription;
+    }
+
+    public void setIssueDescription(String issueDescription) {
+        this.issueDescription = issueDescription;
     }
 
     @Override

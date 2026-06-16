@@ -93,7 +93,8 @@ public class IssueController extends HttpServlet {
             json.append("\"serviceId\":").append(issue.getServiceId()).append(",");
             json.append("\"serviceName\":\"").append(escapeJson(issue.getServiceName())).append("\",");
             json.append("\"supporterId\":").append(issue.getSupporterId()).append(",");
-            json.append("\"supervisorId\":").append(issue.getSupervisorId());
+            json.append("\"supervisorId\":").append(issue.getSupervisorId()).append(",");
+            json.append("\"issueDescription\":\"").append(escapeJson(issue.getIssueDescription())).append("\"");
             json.append("}");
 
             if (i < list.size() - 1) {

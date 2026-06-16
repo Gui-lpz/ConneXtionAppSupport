@@ -24,7 +24,7 @@ public class IssueData {
         } catch (SQLException e) {
             // Si la consulta no incluyó simplemente  queda como null
         }
-        return new Issue(
+        Issue issue = new Issue(
                 rs.getInt("id"),
                 rs.getString("reference"),
                 rs.getString("classification"),
@@ -40,13 +40,15 @@ public class IssueData {
                 supporterId,
                 supervisorId
         );
+        issue.setIssueDescription(rs.getString("issue_description"));
+        return issue;
     }
 
     public void add(Issue issue) throws SQLException, ClassNotFoundException {
         String sql = "INSERT INTO Issue "
                 + "(reference, classification, status, issue_timestamp, resolution_comment, "
-                + "service_id, supporter_id, supervisor_id) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                + "service_id, supporter_id, supervisor_id, issue_description) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DbConnection_AppSupport.getConnection(); PreparedStatement statement = conn.prepareStatement(sql)) {
 
@@ -68,6 +70,7 @@ public class IssueData {
             } else {
                 statement.setInt(8, issue.getSupervisorId());
             }
+            statement.setString(9, issue.getIssueDescription());
             statement.executeUpdate();
         }
     }
@@ -200,14 +203,13 @@ public class IssueData {
                 + "INNER JOIN SupporterService ss ON ss.service_id = i.service_id "
                 + "LEFT JOIN Service s ON i.service_id = s.id "
                 + "WHERE ss.supporter_id = ? "
-                + "AND (i.supporter_id IS NULL OR i.supporter_id = ?) "
+                + "AND i.supporter_id IS NULL "
                 + "AND " + CLOSED_STATUS_FILTER + " "
                 + "ORDER BY i.issue_timestamp ASC";
 
         try (Connection conn = DbConnection_AppSupport.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, supporterId);
-            stmt.setInt(2, supporterId);
 
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {

@@ -54,6 +54,10 @@ public class ServiceController extends HttpServlet {
             String status = asString(body.get("status"));
             String resolutionComment = asString(body.get("resolutionComment"));
             LocalDateTime issueTimestamp = parseTimestamp(body.get("issueTimestamp"));
+            String issueDescription = asString(body.get("description"));
+            if (issueDescription == null) {
+                issueDescription = asString(body.get("issueDescription"));
+            }
 
             if (reference == null || reference.isBlank()) {
                 writeError(resp, HttpServletResponse.SC_BAD_REQUEST, "'refeence' es necesario.");
@@ -87,6 +91,7 @@ public class ServiceController extends HttpServlet {
             if (resolutionComment != null) {
                 issue.setResolutionComment(resolutionComment);
             }
+            issue.setIssueDescription(issueDescription);
             // supporterId / supervisorId queda en 0 (sin asignar)
 
             issueData.add(issue);
