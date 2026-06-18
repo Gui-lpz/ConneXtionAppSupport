@@ -31,10 +31,9 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ChatServer {
 
     // Puerto donde escucha el servidor de chat. Debe coincidir con el cliente.
-    public static final int PORT = 8080;
+    public static final int PORT = 9500;
 
-    /* Sesiones activas: clave = issueId, valor = ChatSession.
-      ConcurrentHashMap para acceso seguro desde múltiples hilos.*/
+    //Sesiones activas: clave = issueId, valor = ChatSession. ConcurrentHashMap para acceso seguro desde múltiples hilos.
     private static final Map<Integer, ChatSession> sessions = new ConcurrentHashMap<>();
 
     public static void main(String[] args) throws IOException {
