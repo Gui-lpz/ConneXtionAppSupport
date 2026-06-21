@@ -30,7 +30,10 @@ import java.util.concurrent.ConcurrentHashMap;
     Cuando ambos se desconectan, la sesión se elimina.*/
 public class ChatServer {
 
-    // Puerto donde escucha el servidor de chat. Debe coincidir con el cliente.
+   /* Puerto exclusivo del ChatServer para sockets TCP.
+       Debe ser distinto al puerto HTTP de Tomcat (8080/8081).
+       El ChatServletClient y ChatServletSupport apuntan a este mismo puerto. */
+    
     public static final int PORT = 9500;
 
     //Sesiones activas: clave = issueId, valor = ChatSession. ConcurrentHashMap para acceso seguro desde múltiples hilos.
@@ -52,7 +55,7 @@ public class ChatServer {
 
     /*Obtiene o crea la sesión para el issueId dado.
       Sincronizado para evitar condiciones de carrera al crear.*/
-    static synchronized ChatSession getOrCreateSession(int issueId) {
+    public static synchronized ChatSession getOrCreateSession(int issueId) {
         return sessions.computeIfAbsent(issueId, ChatSession::new);
     }
 
