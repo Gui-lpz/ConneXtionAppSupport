@@ -14,7 +14,7 @@ import javax.servlet.http.HttpServletResponse;
 import model.data.IssueData;
 import model.entities.Issue;
 import sync.IssueSyncManager;
-
+import model.data.ClientStatusClient;
 
 @WebServlet("/api/support/issues/*")
 public class SupportIssueController extends HttpServlet {
@@ -25,6 +25,7 @@ public class SupportIssueController extends HttpServlet {
     private static final String[] CLOSED_STATUSES = {"Resuelto", "Finished", "Terminado"};
     private static final String[] ALLOWED_CLASSIFICATIONS = {"Baja", "Media", "Alta"};
     private static final String[] ALLOWED_STATUSES = {"Ingresado", "En Progreso", "Resuelto"};
+    private final ClientStatusClient clientStatusClient = new ClientStatusClient();
 
     private void setCors(HttpServletResponse resp) {
         resp.setHeader("Access-Control-Allow-Origin", "*");
@@ -124,7 +125,6 @@ public class SupportIssueController extends HttpServlet {
                 return;
             }
 
-           
             if (issue.getSupporterId() != 0 && issue.getSupporterId() != supporterId) {
                 writeError(resp, out, HttpServletResponse.SC_CONFLICT,
                         "This issue is already assigned to another supporter.");
@@ -140,6 +140,20 @@ public class SupportIssueController extends HttpServlet {
             issueData.assignIssueToSupporter(issueId, supporterId);
 
             Issue updated = issueData.findById(issueId);
+
+            try {
+                if (updated != null) {
+                    clientStatusClient.updateClientIssueStatus(
+                            updated.getReference(),
+                            updated.getStatus(),
+                            updated.getResolutionComment()
+                    );
+                }
+            } catch (Exception syncEx) {
+                System.err.println("No se pudo sincronizar asignación con cliente: "
+                        + syncEx.getMessage());
+            }
+
             writeSuccess(resp, out, "Issue assigned successfully.", updated);
 
         } catch (Exception e) {
@@ -197,16 +211,28 @@ public class SupportIssueController extends HttpServlet {
             // Support DB update succeeded: push the change to the client backend
             // through the Gateway (async, daemon thread). Resolved issues stop tracking.
             IssueSyncManager.getInstance().triggerSync(updated);
+            try {
+                if (updated != null) {
+                    clientStatusClient.updateClientIssueStatus(
+                            updated.getReference(),
+                            updated.getStatus(),
+                            updated.getResolutionComment()
+                    );
+                }
+            } catch (Exception syncEx) {
+                System.err.println("No se pudo sincronizar asignación con cliente: "
+                        + syncEx.getMessage());
+            }
 
-            writeSuccess(resp, out, "Issue updated successfully.", updated);
+            writeSuccess(resp, out, "Issue assigned successfully.", updated);
 
         } catch (Exception e) {
             writeError(resp, out, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
         }
+
     }
 
     // ── helpers ──────────────────────────────────────────────
-
     private void prepare(HttpServletResponse resp) {
         resp.setContentType("application/json");
         resp.setCharacterEncoding("UTF-8");
