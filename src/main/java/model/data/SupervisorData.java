@@ -88,20 +88,26 @@ public class SupervisorData {
     }
 
     public Supervisor findById(int id) throws SQLException, ClassNotFoundException {
-        String sql = "SELECT * FROM Supervisor WHERE id = ?";
+       String sql = "SELECT * FROM Supervisor WHERE id = ?";
 
-        try (Connection conn = DbConnection_AppSupport.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+       try (Connection conn = DbConnection_AppSupport.getConnection();
+            PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setInt(1, id);
+           stmt.setInt(1, id);
 
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) return map(rs);
-            }
-        }
+           try (ResultSet rs = stmt.executeQuery()) {
+               if (rs.next()) {
+                   Supervisor supervisor = map(rs);
 
-        return null;
-    }
+                   supervisor.setServiceId(getServiceId(conn, supervisor.getId()));
+
+                   return supervisor;
+               }
+           }
+       }
+
+    return null;
+}
 
     public void update(Supervisor supervisor) throws SQLException, ClassNotFoundException {
         String sql = "UPDATE Supervisor SET name=?, first_surname=?, second_surname=?, "

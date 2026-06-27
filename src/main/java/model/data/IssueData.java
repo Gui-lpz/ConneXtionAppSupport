@@ -261,15 +261,17 @@ public class IssueData {
         }
     }
 
-    // asignarse el issue
     public void assignIssueToSupporter(int issueId, int supporterId)
             throws SQLException, ClassNotFoundException {
-        String sql = "UPDATE Issue SET supporter_id=? WHERE id=?";
 
-        try (Connection conn = DbConnection_AppSupport.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+        String sql = "UPDATE Issue SET supporter_id=?, status=? WHERE id=?";
+
+        try (Connection conn = DbConnection_AppSupport.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, supporterId);
-            stmt.setInt(2, issueId);
+            stmt.setString(2, "Asignado");
+            stmt.setInt(3, issueId);
 
             stmt.executeUpdate();
         }
