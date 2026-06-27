@@ -20,11 +20,11 @@ public class SupporterRegisterController extends HttpServlet {
     private static final int MAX_SERVICES = 2;
 
     private final SupporterData supporterData = new SupporterData();
-    private final ServiceData   serviceData   = new ServiceData();
-    private final ObjectMapper  mapper        = new ObjectMapper();
+    private final ServiceData serviceData = new ServiceData();
+    private final ObjectMapper mapper = new ObjectMapper();
 
     private void setCors(HttpServletResponse resp) {
-        resp.setHeader("Access-Control-Allow-Origin",  "*");
+        resp.setHeader("Access-Control-Allow-Origin", "*");
         resp.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
         resp.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
     }
@@ -49,8 +49,10 @@ public class SupporterRegisterController extends HttpServlet {
             for (int i = 0; i < services.size(); i++) {
                 Service s = services.get(i);
                 json.append("{\"id\":").append(s.getId())
-                    .append(",\"name\":\"").append(escapeJson(s.getName())).append("\"}");
-                if (i < services.size() - 1) json.append(",");
+                        .append(",\"name\":\"").append(escapeJson(s.getName())).append("\"}");
+                if (i < services.size() - 1) {
+                    json.append(",");
+                }
             }
             json.append("]");
 
@@ -74,13 +76,13 @@ public class SupporterRegisterController extends HttpServlet {
             Map<?, ?> body = mapper.readValue(req.getInputStream(), Map.class);
 
             // ── 1. Leer campos ────────────────────────────────────────────────
-            Integer supervisorId  = toInt(body.get("supervisorId"));
-            String  name          = (String) body.get("name");
-            String  firstSurname  = (String) body.get("firstSurname");
-            String  secondSurname = (String) body.get("secondSurname");
-            String  email         = (String) body.get("email");
-            String  password      = (String) body.get("password");
-            List<?> serviceIds    = (List<?>) body.get("serviceIds");
+            Integer supervisorId = toInt(body.get("supervisorId"));
+            String name = (String) body.get("name");
+            String firstSurname = (String) body.get("firstSurname");
+            String secondSurname = (String) body.get("secondSurname");
+            String email = (String) body.get("email");
+            String password = (String) body.get("password");
+            List<?> serviceIds = (List<?>) body.get("serviceIds");
 
             // ── 2. Validar campos obligatorios ────────────────────────────────
             if (supervisorId == null || isBlank(name) || isBlank(firstSurname)
@@ -91,43 +93,49 @@ public class SupporterRegisterController extends HttpServlet {
                 return;
             }
 
-            // ── 3. Validar áreas de servicio ──────────────────────────────────
-            if (serviceIds == null || serviceIds.isEmpty()) {
-                resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                mapper.writeValue(resp.getWriter(),
-                        Map.of("error", "Debe asignarse al menos un área de servicio."));
-                return;
-            }
-
-            if (serviceIds.size() > MAX_SERVICES) {
-                resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                mapper.writeValue(resp.getWriter(),
-                        Map.of("error", "Un soportista puede tener como máximo " + MAX_SERVICES + " áreas de servicio."));
-                return;
-            }
-
-            // Verificar que los IDs enviados existen en la BD y no están duplicados
+            // ── 3. Validar áreas de servicio (OPCIONAL) ────────────────────────
+            // Si el supervisor no marca la casilla de "área específica", serviceIds
+            // viene vacío o null → el soportista trabaja en TODAS las áreas (1-4).
             List<Integer> parsedServiceIds = new ArrayList<>();
-            for (Object sid : serviceIds) {
-                Integer id = toInt(sid);
-                if (id == null) {
-                    resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                    mapper.writeValue(resp.getWriter(), Map.of("error", "serviceIds contiene un valor inválido."));
-                    return;
-                }
-                if (parsedServiceIds.contains(id)) {
-                    resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                    mapper.writeValue(resp.getWriter(), Map.of("error", "No podés asignar el mismo servicio dos veces."));
-                    return;
-                }
-                Service service = serviceData.findById(id);
-                if (service == null) {
+
+            boolean noAreasProvided = (serviceIds == null || serviceIds.isEmpty());
+
+            if (!noAreasProvided) {
+                if (serviceIds.size() > MAX_SERVICES) {
                     resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                     mapper.writeValue(resp.getWriter(),
-                            Map.of("error", "El servicio con id " + id + " no existe."));
+                            Map.of("error", "Un soportista puede tener como máximo " + MAX_SERVICES + " áreas de servicio."));
                     return;
                 }
-                parsedServiceIds.add(id);
+
+                // Verificar que los IDs enviados existen en la BD y no están duplicados
+                for (Object sid : serviceIds) {
+                    Integer id = toInt(sid);
+                    if (id == null) {
+                        resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                        mapper.writeValue(resp.getWriter(), Map.of("error", "serviceIds contiene un valor inválido."));
+                        return;
+                    }
+                    if (parsedServiceIds.contains(id)) {
+                        resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                        mapper.writeValue(resp.getWriter(), Map.of("error", "No podés asignar el mismo servicio dos veces."));
+                        return;
+                    }
+                    Service service = serviceData.findById(id);
+                    if (service == null) {
+                        resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                        mapper.writeValue(resp.getWriter(),
+                                Map.of("error", "El servicio con id " + id + " no existe."));
+                        return;
+                    }
+                    parsedServiceIds.add(id);
+                }
+            } else {
+                // No se marcó la casilla de área específica → asignar TODAS las áreas existentes
+                ArrayList<Service> allServices = serviceData.getAll();
+                for (Service s : allServices) {
+                    parsedServiceIds.add(s.getId());
+                }
             }
 
             // ── 4. Verificar que el email no esté ya registrado ───────────────
@@ -146,7 +154,7 @@ public class SupporterRegisterController extends HttpServlet {
                     secondSurname != null ? secondSurname.trim() : "",
                     email.trim(),
                     password,
-                    0,            // serviceId simple — se maneja via SupporterService
+                    0, // serviceId simple — se maneja via SupporterService
                     supervisorId
             );
 
@@ -155,9 +163,9 @@ public class SupporterRegisterController extends HttpServlet {
 
             resp.setStatus(HttpServletResponse.SC_CREATED);
             mapper.writeValue(resp.getWriter(), Map.of(
-                    "message",    "Soportista registrado correctamente.",
+                    "message", "Soportista registrado correctamente.",
                     "supporterId", newId,
-                    "serviceIds",  parsedServiceIds
+                    "serviceIds", parsedServiceIds
             ));
 
         } catch (Exception e) {
@@ -168,10 +176,14 @@ public class SupporterRegisterController extends HttpServlet {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
     private Integer toInt(Object value) {
-        if (value instanceof Number) return ((Number) value).intValue();
+        if (value instanceof Number) {
+            return ((Number) value).intValue();
+        }
         if (value instanceof String && !((String) value).isBlank()) {
-            try { return Integer.valueOf(((String) value).trim()); }
-            catch (NumberFormatException ignored) {}
+            try {
+                return Integer.valueOf(((String) value).trim());
+            } catch (NumberFormatException ignored) {
+            }
         }
         return null;
     }
@@ -181,8 +193,10 @@ public class SupporterRegisterController extends HttpServlet {
     }
 
     private String escapeJson(String value) {
-        if (value == null) return "";
+        if (value == null) {
+            return "";
+        }
         return value.replace("\\", "\\\\").replace("\"", "\\\"")
-                    .replace("\n", "\\n").replace("\r", "\\r");
+                .replace("\n", "\\n").replace("\r", "\\r");
     }
 }
