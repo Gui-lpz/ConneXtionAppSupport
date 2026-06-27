@@ -38,115 +38,195 @@ public class NotificationController extends HttpServlet {
     }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+            throws IOException {
+
         resp.setContentType("application/json");
         resp.setCharacterEncoding("UTF-8");
         setCors(resp);
 
         String role = req.getParameter("role");
+
         if (role == null || role.isBlank()) {
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            mapper.writeValue(resp.getWriter(), Map.of("error", "El parámetro 'role' es obligatorio (SUPERVISOR o SUPPORTER)."));
+            mapper.writeValue(resp.getWriter(),
+                    Map.of("error", "El parámetro role es obligatorio."));
             return;
         }
 
         try {
-            switch (role.toUpperCase()) {
-                case "SUPERVISOR" -> handleSupervisorNotifications(req, resp);
-                case "SUPPORTER" -> handleSupporterNotifications(req, resp);
-                default -> {
-                    resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                    mapper.writeValue(resp.getWriter(), Map.of("error", "Rol no reconocido: " + role));
-                }
+            if ("SUPERVISOR".equalsIgnoreCase(role)) {
+                handleSupervisorNotifications(req, resp);
+                return;
             }
+
+            if ("SUPPORTER".equalsIgnoreCase(role)) {
+                handleSupporterNotifications(req, resp);
+                return;
+            }
+
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            mapper.writeValue(resp.getWriter(),
+                    Map.of("error", "Rol no reconocido: " + role));
+
         } catch (Exception e) {
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            mapper.writeValue(resp.getWriter(), Map.of("error", e.getMessage()));
+            mapper.writeValue(resp.getWriter(),
+                    Map.of("error", e.getMessage()));
         }
     }
 
-    private void handleSupervisorNotifications(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        String idParam = request.getParameter("supervisorId") != null ? request.getParameter("supervisorId") : request.getParameter("id");
-        
+    private void handleSupervisorNotifications(HttpServletRequest req,
+            HttpServletResponse resp) throws Exception {
+
+        String idParam = req.getParameter("supervisorId");
+
         if (idParam == null || idParam.isBlank()) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            mapper.writeValue(response.getWriter(), Map.of("error", "El parámetro 'supervisorId' es obligatorio."));
-            return;
+            idParam = req.getParameter("id");
         }
-        
-        int supervisorId = Integer.parseInt(idParam);
-        Supervisor supervisor = supervisorData.findById(supervisorId);
-        
-        if (supervisor == null) {
-            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-            mapper.writeValue(response.getWriter(), Map.of("error", "Supervisor no encontrado con id: " + supervisorId));
+
+        if (idParam == null || idParam.isBlank()) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            mapper.writeValue(resp.getWriter(),
+                    Map.of("error", "El parámetro supervisorId es obligatorio."));
             return;
         }
 
-        ArrayList<Issue> pendingIssues = issueData.getPendingByServiceId(supervisor.getServiceId());
+        int supervisorId = Integer.parseInt(idParam);
+        Supervisor supervisor = supervisorData.findById(supervisorId);
+
+        if (supervisor == null) {
+            resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            mapper.writeValue(resp.getWriter(),
+                    Map.of("error", "Supervisor no encontrado."));
+            return;
+        }
+
+        /*
+         * Supervisor ve todos los tiquetes nuevos ingresados por los clientes
+        
+         */
+        ArrayList<Issue> pendingIssues = issueData.getNewUnassignedIssues();
+
         List<Map<String, Object>> result = new ArrayList<>();
+
         for (Issue issue : pendingIssues) {
             result.add(buildSupervisorNotificationDto(issue));
         }
-        response.setStatus(HttpServletResponse.SC_OK);
-        mapper.writeValue(response.getWriter(), result);
+
+        resp.setStatus(HttpServletResponse.SC_OK);
+        mapper.writeValue(resp.getWriter(), result);
     }
 
-    private void handleSupporterNotifications(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        String idParam = request.getParameter("supporterId") != null ? request.getParameter("supporterId") : request.getParameter("id");
+    private void handleSupporterNotifications(HttpServletRequest req,
+            HttpServletResponse resp) throws Exception {
+
+        String idParam = req.getParameter("supporterId");
 
         if (idParam == null || idParam.isBlank()) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            mapper.writeValue(response.getWriter(), Map.of("error", "El parámetro 'supporterId' es obligatorio."));
-            return;
+            idParam = req.getParameter("id");
         }
-        
-        int supporterId = Integer.parseInt(idParam);
-        Supporter supporter = supporterData.findById(supporterId);
-        
-        if (supporter == null) {
-            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-            mapper.writeValue(response.getWriter(), Map.of("error", "Soportista no encontrado con id: " + supporterId));
+
+        if (idParam == null || idParam.isBlank()) {
+            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            mapper.writeValue(resp.getWriter(),
+                    Map.of("error", "El parámetro supporterId es obligatorio."));
             return;
         }
 
-        ArrayList<Issue> assignedIssues = issueData.getBySupporterId(supporterId);
+        int supporterId = Integer.parseInt(idParam);
+        Supporter supporter = supporterData.findById(supporterId);
+
+        if (supporter == null) {
+            resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            mapper.writeValue(resp.getWriter(),
+                    Map.of("error", "Soportista no encontrado."));
+            return;
+        }
+
+        /*
+         * Soportista ve únicamente los tiquetes que el supervisor ya le asignó
+         */
+        ArrayList<Issue> assignedIssues =
+                issueData.getBySupporterId(supporterId);
+
         List<Map<String, Object>> result = new ArrayList<>();
+
         for (Issue issue : assignedIssues) {
-            //  notificamos sobre tiquetes que no están resueltos
-            if (!"Resuelto".equalsIgnoreCase(issue.getStatus())) {
-                result.add(buildSupporterIssueDto(issue));
+            if (shouldNotifySupporter(issue, supporterId)) {
+                result.add(buildSupporterNotificationDto(issue));
             }
         }
-        response.setStatus(HttpServletResponse.SC_OK);
-        mapper.writeValue(response.getWriter(), result);
+
+        resp.setStatus(HttpServletResponse.SC_OK);
+        mapper.writeValue(resp.getWriter(), result);
+    }
+
+    private boolean shouldNotifySupporter(Issue issue, int supporterId) {
+        if (issue == null) {
+            return false;
+        }
+
+        if (issue.getSupporterId() != supporterId) {
+            return false;
+        }
+
+        String status = normalize(issue.getStatus());
+
+        return status.equals("asignado");
     }
 
     private Map<String, Object> buildSupervisorNotificationDto(Issue issue) {
-        Map<String, Object> dto = new LinkedHashMap<>();
-        dto.put("id", issue.getId());
-        dto.put("reference", issue.getReference());
-        dto.put("classification", issue.getClassification());
-        dto.put("serviceName", issue.getServiceName());
-        dto.put("status", issue.getStatus());
-        dto.put("issueTimestamp", issue.getIssueTimestamp() != null ? issue.getIssueTimestamp().toString() : null);
-        dto.put("contactEmail", issue.getContactEmail());
-        dto.put("contactPhone", issue.getContactPhone());
+        Map<String, Object> dto = baseDto(issue);
+
+        dto.put("type", "NEW_ISSUE");
+        dto.put("title", "Nuevo tiquete ingresado");
+        dto.put("message", "Hay un nuevo tiquete pendiente de asignar.");
+
         return dto;
     }
 
-    private Map<String, Object> buildSupporterIssueDto(Issue issue) {
+    private Map<String, Object> buildSupporterNotificationDto(Issue issue) {
+        Map<String, Object> dto = baseDto(issue);
+
+        dto.put("type", "ASSIGNED_ISSUE");
+        dto.put("title", "Nuevo tiquete asignado");
+        dto.put("message", "Se te asignó un nuevo tiquete.");
+
+        return dto;
+    }
+
+    private Map<String, Object> baseDto(Issue issue) {
         Map<String, Object> dto = new LinkedHashMap<>();
+
         dto.put("id", issue.getId());
         dto.put("reference", issue.getReference());
         dto.put("classification", issue.getClassification());
         dto.put("serviceName", issue.getServiceName());
         dto.put("status", issue.getStatus());
-        dto.put("issueTimestamp", issue.getIssueTimestamp() != null ? issue.getIssueTimestamp().toString() : null);
-        dto.put("resolutionComment", issue.isResolved() ? issue.getResolutionComment() : null);
-        dto.put("isAssigned", issue.isAssigned());
-        dto.put("isInProgress", issue.isInProgress());
-        dto.put("isResolved", issue.isResolved());
+        dto.put("issueTimestamp",
+                issue.getIssueTimestamp() != null
+                        ? issue.getIssueTimestamp().toString()
+                        : null);
+        dto.put("contactEmail", issue.getContactEmail());
+        dto.put("contactPhone", issue.getContactPhone());
+        dto.put("supporterId", issue.getSupporterId());
+        dto.put("supervisorId", issue.getSupervisorId());
+
         return dto;
+    }
+
+    private String normalize(String value) {
+        if (value == null) {
+            return "";
+        }
+
+        return value.trim()
+                .toLowerCase()
+                .replace("á", "a")
+                .replace("é", "e")
+                .replace("í", "i")
+                .replace("ó", "o")
+                .replace("ú", "u");
     }
 }

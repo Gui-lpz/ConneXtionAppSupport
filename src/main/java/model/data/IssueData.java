@@ -341,4 +341,28 @@ public class IssueData {
 
         return list;
     }
+    
+    public ArrayList<Issue> getNewUnassignedIssues()
+        throws SQLException, ClassNotFoundException {
+
+    ArrayList<Issue> list = new ArrayList<>();
+
+    String sql = "SELECT i.*, s.name AS service_name "
+            + "FROM Issue i "
+            + "LEFT JOIN Service s ON i.service_id = s.id "
+            + "WHERE i.status = 'Ingresado' "
+            + "AND i.supporter_id IS NULL "
+            + "ORDER BY i.issue_timestamp ASC";
+
+    try (Connection conn = DbConnection_AppSupport.getConnection();
+         PreparedStatement stmt = conn.prepareStatement(sql);
+         ResultSet rs = stmt.executeQuery()) {
+
+        while (rs.next()) {
+            list.add(map(rs));
+        }
+    }
+
+    return list;
+}
 }
