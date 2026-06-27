@@ -16,7 +16,6 @@ import model.data.SupporterData;
 import model.entities.Issue;
 import model.entities.Supervisor;
 import model.entities.Supporter;
-//  Funciona como Endpoint de notificaciones para la aplicación de soporte.
 
 @WebServlet("/api/notifications")
 public class NotificationController extends HttpServlet {
@@ -40,27 +39,24 @@ public class NotificationController extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-
         resp.setContentType("application/json");
         resp.setCharacterEncoding("UTF-8");
         setCors(resp);
+
         String role = req.getParameter("role");
         if (role == null || role.isBlank()) {
             resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            mapper.writeValue(resp.getWriter(),
-                    Map.of("error", "El parámetro 'role' es obligatorio (SUPERVISOR o SUPPORTER)."));
+            mapper.writeValue(resp.getWriter(), Map.of("error", "El parámetro 'role' es obligatorio (SUPERVISOR o SUPPORTER)."));
             return;
         }
+
         try {
             switch (role.toUpperCase()) {
-                case "SUPERVISOR" ->
-                    handleSupervisorNotifications(req, resp);
-                case "SUPPORTER" ->
-                    handleSupporterNotifications(req, resp);
+                case "SUPERVISOR" -> handleSupervisorNotifications(req, resp);
+                case "SUPPORTER" -> handleSupporterNotifications(req, resp);
                 default -> {
                     resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                    mapper.writeValue(resp.getWriter(),
-                            Map.of("error", "Rol no reconocido: " + role));
+                    mapper.writeValue(resp.getWriter(), Map.of("error", "Rol no reconocido: " + role));
                 }
             }
         } catch (Exception e) {
@@ -70,22 +66,23 @@ public class NotificationController extends HttpServlet {
     }
 
     private void handleSupervisorNotifications(HttpServletRequest request, HttpServletResponse response) throws Exception {
-
-        String supervisorIdParam = request.getParameter("supervisorId");
-        if (supervisorIdParam == null || supervisorIdParam.isBlank()) {
+        String idParam = request.getParameter("supervisorId") != null ? request.getParameter("supervisorId") : request.getParameter("id");
+        
+        if (idParam == null || idParam.isBlank()) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            mapper.writeValue(response.getWriter(),
-                    Map.of("error", "El parámetro 'supervisorId' es obligatorio."));
+            mapper.writeValue(response.getWriter(), Map.of("error", "El parámetro 'supervisorId' es obligatorio."));
             return;
         }
-        int supervisorId = Integer.parseInt(supervisorIdParam);
+        
+        int supervisorId = Integer.parseInt(idParam);
         Supervisor supervisor = supervisorData.findById(supervisorId);
+        
         if (supervisor == null) {
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-            mapper.writeValue(response.getWriter(),
-                    Map.of("error", "Supervisor no encontrado con id: " + supervisorId));
+            mapper.writeValue(response.getWriter(), Map.of("error", "Supervisor no encontrado con id: " + supervisorId));
             return;
         }
+
         ArrayList<Issue> pendingIssues = issueData.getPendingByServiceId(supervisor.getServiceId());
         List<Map<String, Object>> result = new ArrayList<>();
         for (Issue issue : pendingIssues) {
@@ -96,26 +93,30 @@ public class NotificationController extends HttpServlet {
     }
 
     private void handleSupporterNotifications(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        String idParam = request.getParameter("supporterId") != null ? request.getParameter("supporterId") : request.getParameter("id");
 
-        String supporterIdParam = request.getParameter("supporterId");
-        if (supporterIdParam == null || supporterIdParam.isBlank()) {
+        if (idParam == null || idParam.isBlank()) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            mapper.writeValue(response.getWriter(),
-                    Map.of("error", "El parámetro 'supporterId' es obligatorio."));
+            mapper.writeValue(response.getWriter(), Map.of("error", "El parámetro 'supporterId' es obligatorio."));
             return;
         }
-        int supporterId = Integer.parseInt(supporterIdParam);
+        
+        int supporterId = Integer.parseInt(idParam);
         Supporter supporter = supporterData.findById(supporterId);
+        
         if (supporter == null) {
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-            mapper.writeValue(response.getWriter(),
-                    Map.of("error", "Soportista no encontrado con id: " + supporterId));
+            mapper.writeValue(response.getWriter(), Map.of("error", "Soportista no encontrado con id: " + supporterId));
             return;
         }
+
         ArrayList<Issue> assignedIssues = issueData.getBySupporterId(supporterId);
         List<Map<String, Object>> result = new ArrayList<>();
         for (Issue issue : assignedIssues) {
-            result.add(buildSupporterIssueDto(issue));
+            //  notificamos sobre tiquetes que no están resueltos
+            if (!"Resuelto".equalsIgnoreCase(issue.getStatus())) {
+                result.add(buildSupporterIssueDto(issue));
+            }
         }
         response.setStatus(HttpServletResponse.SC_OK);
         mapper.writeValue(response.getWriter(), result);
@@ -128,9 +129,7 @@ public class NotificationController extends HttpServlet {
         dto.put("classification", issue.getClassification());
         dto.put("serviceName", issue.getServiceName());
         dto.put("status", issue.getStatus());
-        dto.put("issueTimestamp",
-                issue.getIssueTimestamp() != null
-                ? issue.getIssueTimestamp().toString() : null);
+        dto.put("issueTimestamp", issue.getIssueTimestamp() != null ? issue.getIssueTimestamp().toString() : null);
         dto.put("contactEmail", issue.getContactEmail());
         dto.put("contactPhone", issue.getContactPhone());
         return dto;
@@ -143,11 +142,8 @@ public class NotificationController extends HttpServlet {
         dto.put("classification", issue.getClassification());
         dto.put("serviceName", issue.getServiceName());
         dto.put("status", issue.getStatus());
-        dto.put("issueTimestamp",
-                issue.getIssueTimestamp() != null
-                ? issue.getIssueTimestamp().toString() : null);
-        dto.put("resolutionComment",
-                issue.isResolved() ? issue.getResolutionComment() : null);
+        dto.put("issueTimestamp", issue.getIssueTimestamp() != null ? issue.getIssueTimestamp().toString() : null);
+        dto.put("resolutionComment", issue.isResolved() ? issue.getResolutionComment() : null);
         dto.put("isAssigned", issue.isAssigned());
         dto.put("isInProgress", issue.isInProgress());
         dto.put("isResolved", issue.isResolved());
