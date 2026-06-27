@@ -13,9 +13,8 @@ import javax.servlet.http.HttpServletResponse;
 
 import model.data.IssueData;
 import model.entities.Issue;
+import sync.IssueSyncManager;
 import model.data.ClientStatusClient;
-
-
 
 @WebServlet("/api/support/issues/*")
 public class SupportIssueController extends HttpServlet {
@@ -106,139 +105,134 @@ public class SupportIssueController extends HttpServlet {
     }
 
     private void handleAssign(HttpServletRequest req, HttpServletResponse resp, PrintWriter out, int issueId) {
-    try {
-        Map<?, ?> body = mapper.readValue(req.getInputStream(), Map.class);
-        Integer supporterId = toInt(body.get("supporterId"));
-
-        if (supporterId == null) {
-            writeError(resp, out, HttpServletResponse.SC_BAD_REQUEST, "supporterId is required.");
-            return;
-        }
-
-        Issue issue = issueData.findById(issueId);
-        if (issue == null) {
-            writeError(resp, out, HttpServletResponse.SC_NOT_FOUND, "Issue not found.");
-            return;
-        }
-
-        if (isClosed(issue.getStatus())) {
-            writeError(resp, out, HttpServletResponse.SC_CONFLICT, "Resolved issues cannot be assigned.");
-            return;
-        }
-
-        if (issue.getSupporterId() != 0 && issue.getSupporterId() != supporterId) {
-            writeError(resp, out, HttpServletResponse.SC_CONFLICT,
-                    "This issue is already assigned to another supporter.");
-            return;
-        }
-
-        if (!issueData.supporterHasService(supporterId, issue.getServiceId())) {
-            writeError(resp, out, HttpServletResponse.SC_FORBIDDEN,
-                    "This issue does not belong to the supporter's services.");
-            return;
-        }
-
-        issueData.assignIssueToSupporter(issueId, supporterId);
-
-        Issue updated = issueData.findById(issueId);
-
-
         try {
-            if (updated != null) {
-                clientStatusClient.updateClientIssueStatus(
-                        updated.getReference(),
-                        updated.getStatus(),
-                        updated.getResolutionComment()
-                );
+            Map<?, ?> body = mapper.readValue(req.getInputStream(), Map.class);
+            Integer supporterId = toInt(body.get("supporterId"));
+
+            if (supporterId == null) {
+                writeError(resp, out, HttpServletResponse.SC_BAD_REQUEST, "supporterId is required.");
+                return;
             }
-        } catch (Exception syncEx) {
-            System.err.println("No se pudo sincronizar asignación con cliente: "
-                    + syncEx.getMessage());
+
+            Issue issue = issueData.findById(issueId);
+            if (issue == null) {
+                writeError(resp, out, HttpServletResponse.SC_NOT_FOUND, "Issue not found.");
+                return;
+            }
+
+            if (isClosed(issue.getStatus())) {
+                writeError(resp, out, HttpServletResponse.SC_CONFLICT, "Resolved issues cannot be assigned.");
+                return;
+            }
+
+            if (issue.getSupporterId() != 0 && issue.getSupporterId() != supporterId) {
+                writeError(resp, out, HttpServletResponse.SC_CONFLICT,
+                        "This issue is already assigned to another supporter.");
+                return;
+            }
+
+            if (!issueData.supporterHasService(supporterId, issue.getServiceId())) {
+                writeError(resp, out, HttpServletResponse.SC_FORBIDDEN,
+                        "This issue does not belong to the supporter's services.");
+                return;
+            }
+
+            issueData.assignIssueToSupporter(issueId, supporterId);
+
+            Issue updated = issueData.findById(issueId);
+
+            try {
+                if (updated != null) {
+                    clientStatusClient.updateClientIssueStatus(
+                            updated.getReference(),
+                            updated.getStatus(),
+                            updated.getResolutionComment()
+                    );
+                }
+            } catch (Exception syncEx) {
+                System.err.println("No se pudo sincronizar asignación con cliente: "
+                        + syncEx.getMessage());
+            }
+
+            writeSuccess(resp, out, "Issue assigned successfully.", updated);
+
+        } catch (Exception e) {
+            writeError(resp, out, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
         }
-
-        writeSuccess(resp, out, "Issue assigned successfully.", updated);
-
-    } catch (Exception e) {
-        writeError(resp, out, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
     }
-}
-   private void handleUpdate(HttpServletRequest req, HttpServletResponse resp, PrintWriter out, int issueId) {
-    try {
-        Map<?, ?> body = mapper.readValue(req.getInputStream(), Map.class);
 
-        Integer supporterId = toInt(body.get("supporterId"));
-        String classification = (String) body.get("classification");
-        String status = (String) body.get("status");
-        String resolutionComment = (String) body.get("resolutionComment");
-
-        if (supporterId == null) {
-            writeError(resp, out, HttpServletResponse.SC_BAD_REQUEST, "supporterId is required.");
-            return;
-        }
-
-        if (!inList(classification, ALLOWED_CLASSIFICATIONS)) {
-            writeError(resp, out, HttpServletResponse.SC_BAD_REQUEST,
-                    "classification must be Baja, Media or Alta.");
-            return;
-        }
-
-        if (!inList(status, ALLOWED_STATUSES)) {
-            writeError(resp, out, HttpServletResponse.SC_BAD_REQUEST,
-                    "status must be Ingresado, En Progreso or Resuelto.");
-            return;
-        }
-
-        Issue issue = issueData.findById(issueId);
-        if (issue == null) {
-            writeError(resp, out, HttpServletResponse.SC_NOT_FOUND, "Issue not found.");
-            return;
-        }
-
-        if (issue.getSupporterId() == 0) {
-            writeError(resp, out, HttpServletResponse.SC_CONFLICT,
-                    "This issue is not assigned to any supporter.");
-            return;
-        }
-
-        if (issue.getSupporterId() != supporterId) {
-            writeError(resp, out, HttpServletResponse.SC_FORBIDDEN,
-                    "This issue is assigned to another supporter.");
-            return;
-        }
-
-        if (isClosed(issue.getStatus())) {
-            writeError(resp, out, HttpServletResponse.SC_CONFLICT,
-                    "Resolved issues cannot be edited.");
-            return;
-        }
-
-
-        issueData.updateAssignedIssue(issueId, classification, status, resolutionComment);
-
-        Issue updated = issueData.findById(issueId);
-
+    private void handleUpdate(HttpServletRequest req, HttpServletResponse resp, PrintWriter out, int issueId) {
         try {
-            if (updated != null) {
-                clientStatusClient.updateClientIssueStatus(
-                        updated.getReference(),
-                        updated.getStatus(),
-                        updated.getResolutionComment()
-                );
+            Map<?, ?> body = mapper.readValue(req.getInputStream(), Map.class);
+            Integer supporterId = toInt(body.get("supporterId"));
+            String classification = (String) body.get("classification");
+            String status = (String) body.get("status");
+            String resolutionComment = (String) body.get("resolutionComment");
+
+            if (supporterId == null) {
+                writeError(resp, out, HttpServletResponse.SC_BAD_REQUEST, "supporterId is required.");
+                return;
             }
-        } catch (Exception syncEx) {
-            System.err.println("No se pudo sincronizar actualización con cliente: "
-                    + syncEx.getMessage());
+            if (!inList(classification, ALLOWED_CLASSIFICATIONS)) {
+                writeError(resp, out, HttpServletResponse.SC_BAD_REQUEST,
+                        "classification must be Baja, Media or Alta.");
+                return;
+            }
+            if (!inList(status, ALLOWED_STATUSES)) {
+                writeError(resp, out, HttpServletResponse.SC_BAD_REQUEST,
+                        "status must be Ingresado, En Progreso or Resuelto.");
+                return;
+            }
+
+            Issue issue = issueData.findById(issueId);
+            if (issue == null) {
+                writeError(resp, out, HttpServletResponse.SC_NOT_FOUND, "Issue not found.");
+                return;
+            }
+            if (issue.getSupporterId() == 0) {
+                writeError(resp, out, HttpServletResponse.SC_CONFLICT,
+                        "This issue is not assigned to any supporter.");
+                return;
+            }
+            if (issue.getSupporterId() != supporterId) {
+                writeError(resp, out, HttpServletResponse.SC_FORBIDDEN,
+                        "This issue is assigned to another supporter.");
+                return;
+            }
+            if (isClosed(issue.getStatus())) {
+                writeError(resp, out, HttpServletResponse.SC_CONFLICT, "Resolved issues cannot be edited.");
+                return;
+            }
+
+            issueData.updateAssignedIssue(issueId, classification, status, resolutionComment);
+
+            Issue updated = issueData.findById(issueId);
+
+            // Support DB update succeeded: push the change to the client backend
+            // through the Gateway (async, daemon thread). Resolved issues stop tracking.
+            IssueSyncManager.getInstance().triggerSync(updated);
+            try {
+                if (updated != null) {
+                    clientStatusClient.updateClientIssueStatus(
+                            updated.getReference(),
+                            updated.getStatus(),
+                            updated.getResolutionComment()
+                    );
+                }
+            } catch (Exception syncEx) {
+                System.err.println("No se pudo sincronizar asignación con cliente: "
+                        + syncEx.getMessage());
+            }
+
+            writeSuccess(resp, out, "Issue assigned successfully.", updated);
+
+        } catch (Exception e) {
+            writeError(resp, out, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
         }
 
-        writeSuccess(resp, out, "Issue updated successfully.", updated);
-
-    } catch (Exception e) {
-        writeError(resp, out, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());
     }
-}
 
     // ── helpers ──────────────────────────────────────────────
-
     private void prepare(HttpServletResponse resp) {
         resp.setContentType("application/json");
         resp.setCharacterEncoding("UTF-8");

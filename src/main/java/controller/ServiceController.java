@@ -9,6 +9,7 @@ import javax.servlet.http.*;
 import model.data.IssueData;
 import model.data.ServiceData;
 import model.entities.Issue;
+import sync.IssueSyncManager;
 
 
 @WebServlet("/api/issues/incoming")
@@ -69,6 +70,7 @@ public class ServiceController extends HttpServlet {
             return;
         }
 
+        
         if (serviceId == null) {
             writeError(resp, HttpServletResponse.SC_BAD_REQUEST, "'serviceId' es obligatorio como número.");
             return;
