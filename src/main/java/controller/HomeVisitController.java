@@ -5,6 +5,7 @@ import java.io.PrintWriter;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -27,37 +28,56 @@ public class HomeVisitController extends HttpServlet {
     }
 
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+protected void doGet(HttpServletRequest request, HttpServletResponse response)
+        throws ServletException, IOException {
 
-        setJsonResponse(response);
-        PrintWriter out = response.getWriter();
+    setJsonResponse(response);
+    PrintWriter out = response.getWriter();
 
-        try {
-            String issueIdParam = request.getParameter("issueId");
-            String supporterIdParam = request.getParameter("supporterId");
+    try {
+        String action = request.getParameter("action");
 
-            ArrayList<HomeVisit> visits;
+        if ("agendaTickets".equalsIgnoreCase(action)) {
+            Integer supervisorId = null;
 
-            if (issueIdParam != null && !issueIdParam.isEmpty()) {
-                visits = homeVisitData.getByIssueId(Integer.parseInt(issueIdParam));
-            } else if (supporterIdParam != null && !supporterIdParam.isEmpty()) {
-                visits = homeVisitData.getBySupporterId(Integer.parseInt(supporterIdParam));
-            } else {
-                visits = homeVisitData.getAll();
+            String supervisorIdParam = request.getParameter("supervisorId");
+
+            if (supervisorIdParam != null && !supervisorIdParam.trim().isEmpty()) {
+                supervisorId = Integer.parseInt(supervisorIdParam);
             }
 
-            out.print(convertListToJson(visits));
-            out.flush();
+            ArrayList<HashMap<String, Object>> issues =
+                    homeVisitData.getProgressIssuesWithAssignedSupporter(supervisorId);
 
-        } catch (SQLException | ClassNotFoundException e) {
-            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            out.print("{\"error\":\"Error al cargar las visitas: " + escapeJson(e.getMessage()) + "\"}");
-        } catch (NumberFormatException e) {
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            out.print("{\"error\":\"Parámetro numérico inválido\"}");
+            out.print(convertAgendaTicketsToJson(issues));
+            out.flush();
+            return;
         }
+
+        String issueIdParam = request.getParameter("issueId");
+        String supporterIdParam = request.getParameter("supporterId");
+
+        ArrayList<HomeVisit> visits;
+
+        if (issueIdParam != null && !issueIdParam.isEmpty()) {
+            visits = homeVisitData.getByIssueId(Integer.parseInt(issueIdParam));
+        } else if (supporterIdParam != null && !supporterIdParam.isEmpty()) {
+            visits = homeVisitData.getBySupporterId(Integer.parseInt(supporterIdParam));
+        } else {
+            visits = homeVisitData.getAll();
+        }
+
+        out.print(convertListToJson(visits));
+        out.flush();
+
+    } catch (SQLException | ClassNotFoundException e) {
+        response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        out.print("{\"error\":\"Error al cargar las visitas: " + escapeJson(e.getMessage()) + "\"}");
+    } catch (NumberFormatException e) {
+        response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        out.print("{\"error\":\"Parámetro numérico inválido\"}");
     }
+}
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
@@ -241,5 +261,36 @@ public class HomeVisitController extends HttpServlet {
                 .replace("\"", "\\\"")
                 .replace("\n", "\\n")
                 .replace("\r", "\\r");
+    }
+    
+    
+    private String convertAgendaTicketsToJson(ArrayList<HashMap<String, Object>> list) {
+        StringBuilder json = new StringBuilder();
+        json.append("[");
+
+        for (int i = 0; i < list.size(); i++) {
+            HashMap<String, Object> row = list.get(i);
+
+            json.append("{");
+            json.append("\"issueId\":").append(row.get("issueId")).append(",");
+            json.append("\"reference\":\"").append(escapeJson(toText(row.get("reference")))).append("\",");
+            json.append("\"classification\":\"").append(escapeJson(toText(row.get("classification")))).append("\",");
+            json.append("\"status\":\"").append(escapeJson(toText(row.get("status")))).append("\",");
+            json.append("\"description\":\"").append(escapeJson(toText(row.get("description")))).append("\",");
+            json.append("\"supporterId\":").append(row.get("supporterId")).append(",");
+            json.append("\"supporterName\":\"").append(escapeJson(toText(row.get("supporterName")))).append("\"");
+            json.append("}");
+
+            if (i < list.size() - 1) {
+                json.append(",");
+            }
+        }
+
+        json.append("]");
+        return json.toString();
+    }
+
+    private String toText(Object value) {
+        return value == null ? "" : String.valueOf(value);
     }
 }

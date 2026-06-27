@@ -3,6 +3,7 @@ package model.data;
 import java.sql.*;
 import java.util.ArrayList;
 import model.entities.HomeVisit;
+import java.util.HashMap;
 
 public class HomeVisitData {
 
@@ -202,5 +203,56 @@ public class HomeVisitData {
             stmt.setInt(1, id);
             stmt.executeUpdate();
         }
+    }
+    
+    
+    public ArrayList<HashMap<String, Object>> getProgressIssuesWithAssignedSupporter(Integer supervisorId)
+            throws SQLException, ClassNotFoundException {
+
+        ArrayList<HashMap<String, Object>> list = new ArrayList<>();
+
+        String sql = "SELECT "
+                + "i.id AS issue_id, "
+                + "i.reference, "
+                + "i.classification, "
+                + "i.status, "
+                + "i.issue_description, "
+                + "i.supporter_id, "
+                + "CONCAT(s.name, ' ', s.first_surname, ' ', ISNULL(s.second_surname, '')) AS supporter_name "
+                + "FROM Issue i "
+                + "INNER JOIN Supporter s ON s.id = i.supporter_id "
+                + "WHERE LTRIM(RTRIM(i.status)) IN ('En Progreso', 'En progreso') "
+                + "AND i.supporter_id IS NOT NULL ";
+
+        if (supervisorId != null) {
+            sql += "AND (i.supervisor_id = ? OR i.supervisor_id IS NULL) ";
+        }
+
+        sql += "ORDER BY i.issue_timestamp DESC";
+
+        try (Connection conn = DbConnection_AppSupport.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            if (supervisorId != null) {
+                stmt.setInt(1, supervisorId);
+            }
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    HashMap<String, Object> row = new HashMap<>();
+
+                    row.put("issueId", rs.getInt("issue_id"));
+                    row.put("reference", rs.getString("reference"));
+                    row.put("classification", rs.getString("classification"));
+                    row.put("status", rs.getString("status"));
+                    row.put("description", rs.getString("issue_description"));
+                    row.put("supporterId", rs.getInt("supporter_id"));
+                    row.put("supporterName", rs.getString("supporter_name"));
+
+                    list.add(row);
+                }
+            }
+        }
+
+        return list;
     }
 }
