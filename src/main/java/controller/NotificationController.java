@@ -11,10 +11,8 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import model.data.IssueData;
-import model.data.SupervisorData;
 import model.data.SupporterData;
 import model.entities.Issue;
-import model.entities.Supervisor;
 import model.entities.Supporter;
 
 @WebServlet("/api/notifications")
@@ -22,7 +20,6 @@ public class NotificationController extends HttpServlet {
 
     private final IssueData issueData = new IssueData();
     private final SupporterData supporterData = new SupporterData();
-    private final SupervisorData supervisorData = new SupervisorData();
     private final ObjectMapper mapper = new ObjectMapper();
 
     private void setCors(HttpServletResponse resp) {
@@ -56,7 +53,7 @@ public class NotificationController extends HttpServlet {
 
         try {
             if ("SUPERVISOR".equalsIgnoreCase(role)) {
-                handleSupervisorNotifications(req, resp);
+                handleSupervisorNotifications(resp);
                 return;
             }
 
@@ -76,41 +73,25 @@ public class NotificationController extends HttpServlet {
         }
     }
 
-    private void handleSupervisorNotifications(HttpServletRequest req,
-            HttpServletResponse resp) throws Exception {
-
-        String idParam = req.getParameter("supervisorId");
-
-        if (idParam == null || idParam.isBlank()) {
-            idParam = req.getParameter("id");
-        }
-
-        if (idParam == null || idParam.isBlank()) {
-            resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            mapper.writeValue(resp.getWriter(),
-                    Map.of("error", "El parámetro supervisorId es obligatorio."));
-            return;
-        }
-
-        int supervisorId = Integer.parseInt(idParam);
-        Supervisor supervisor = supervisorData.findById(supervisorId);
-
-        if (supervisor == null) {
-            resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
-            mapper.writeValue(resp.getWriter(),
-                    Map.of("error", "Supervisor no encontrado."));
-            return;
-        }
+    private void handleSupervisorNotifications(HttpServletResponse resp)
+            throws Exception {
 
         /*
-         * Supervisor ve todos los tiquetes nuevos ingresados por los clientes
+         * Supervisor ve todos los tiquetes nuevos ingresados por los clientes.
         
          */
         ArrayList<Issue> pendingIssues = issueData.getNewUnassignedIssues();
 
+        System.out.println("NOTIFICACIONES SUPERVISOR");
+        System.out.println("Cantidad encontradas: " + pendingIssues.size());
+
         List<Map<String, Object>> result = new ArrayList<>();
 
         for (Issue issue : pendingIssues) {
+            System.out.println("Issue " + issue.getId()
+                    + " | status=" + issue.getStatus()
+                    + " | supporterId=" + issue.getSupporterId());
+
             result.add(buildSupervisorNotificationDto(issue));
         }
 
@@ -145,7 +126,8 @@ public class NotificationController extends HttpServlet {
         }
 
         /*
-         * Soportista ve únicamente los tiquetes que el supervisor ya le asignó
+         * Soportista ve únicamente los tiquetes que el supervisor ya le asignó.
+      
          */
         ArrayList<Issue> assignedIssues =
                 issueData.getBySupporterId(supporterId);
