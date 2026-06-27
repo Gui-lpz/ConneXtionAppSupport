@@ -201,6 +201,23 @@ public class SupporterData {
         return null;
     }
 
+    public ArrayList<Supporter> getBySupervisorId(int supervisorId) throws SQLException, ClassNotFoundException {
+        ArrayList<Supporter> list = new ArrayList<>();
+        String sql = "SELECT * FROM Supporter WHERE supervisor_id = ?";
+
+        try (Connection conn = DbConnection_AppSupport.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, supervisorId);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    list.add(map(rs));
+                }
+            }
+        }
+        return list;
+    }
+
     public ArrayList<Supporter> getByServiceId(int serviceId) throws SQLException, ClassNotFoundException {
         ArrayList<Supporter> list = new ArrayList<>();
         String sql = "SELECT s.* FROM Supporter s "
