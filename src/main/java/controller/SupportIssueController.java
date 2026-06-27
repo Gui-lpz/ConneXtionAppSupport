@@ -14,7 +14,6 @@ import javax.servlet.http.HttpServletResponse;
 import model.data.IssueData;
 import model.entities.Issue;
 import sync.IssueSyncManager;
-import model.data.ClientStatusClient;
 
 @WebServlet("/api/support/issues/*")
 public class SupportIssueController extends HttpServlet {
@@ -25,7 +24,6 @@ public class SupportIssueController extends HttpServlet {
     private static final String[] CLOSED_STATUSES = {"Resuelto", "Finished", "Terminado"};
     private static final String[] ALLOWED_CLASSIFICATIONS = {"Baja", "Media", "Alta"};
     private static final String[] ALLOWED_STATUSES = {"Ingresado", "En Progreso", "Resuelto"};
-    private final ClientStatusClient clientStatusClient = new ClientStatusClient();
 
     private void setCors(HttpServletResponse resp) {
         resp.setHeader("Access-Control-Allow-Origin", "*");
@@ -141,18 +139,10 @@ public class SupportIssueController extends HttpServlet {
 
             Issue updated = issueData.findById(issueId);
 
-            try {
-                if (updated != null) {
-                    clientStatusClient.updateClientIssueStatus(
-                            updated.getReference(),
-                            updated.getStatus(),
-                            updated.getResolutionComment()
-                    );
-                }
-            } catch (Exception syncEx) {
-                System.err.println("No se pudo sincronizar asignación con cliente: "
-                        + syncEx.getMessage());
-            }
+            // La asignación solo cambia supporter_id (campo propio de soporte que el
+            // cliente no maneja), por eso NO se sincroniza con el cliente aquí.
+            // La sincronización hacia el cliente ocurre solo cuando el soportista
+            // edita los campos compartidos (clasificación/estado/comentario).
 
             writeSuccess(resp, out, "Issue assigned successfully.", updated);
 
@@ -208,23 +198,10 @@ public class SupportIssueController extends HttpServlet {
 
             Issue updated = issueData.findById(issueId);
 
-            // Support DB update succeeded: push the change to the client backend
-            // through the Gateway (async, daemon thread). Resolved issues stop tracking.
+            //se hace la llamada para crear el hilo
             IssueSyncManager.getInstance().triggerSync(updated);
-            try {
-                if (updated != null) {
-                    clientStatusClient.updateClientIssueStatus(
-                            updated.getReference(),
-                            updated.getStatus(),
-                            updated.getResolutionComment()
-                    );
-                }
-            } catch (Exception syncEx) {
-                System.err.println("No se pudo sincronizar asignación con cliente: "
-                        + syncEx.getMessage());
-            }
 
-            writeSuccess(resp, out, "Issue assigned successfully.", updated);
+            writeSuccess(resp, out, "Issue updated successfully.", updated);
 
         } catch (Exception e) {
             writeError(resp, out, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, e.getMessage());

@@ -4,17 +4,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import model.entities.Issue;
 
-/**
- * Support-side synchronization manager.
- *
- * Tracks issue references known to this backend and launches one-shot worker
- * threads to push supporter updates to the client backend through the Gateway.
- *
- * Concurrency-safe by design:
- *  - {@code tracked}: references this backend knows about (registered on incoming creation).
- *  - {@code activeWorkers}: references with an in-flight sync worker, used to avoid
- *    starting two workers for the same reference at the same time.
- */
+
 public class IssueSyncManager {
 
     private static final IssueSyncManager INSTANCE = new IssueSyncManager();
@@ -30,11 +20,7 @@ public class IssueSyncManager {
     private IssueSyncManager() {
     }
 
-    /**
-     * Registers a reference for support-side sync. Called after an incoming issue
-     * from the client backend is stored. This does NOT sync back to the client
-     * (the change originated there) — it only marks the reference as syncable.
-     */
+ //marca la ref del tiquete
     public void register(String reference) {
         if (reference == null || reference.isBlank()) {
             return;
@@ -48,12 +34,7 @@ public class IssueSyncManager {
         return reference != null && tracked.contains(reference);
     }
 
-    /**
-     * Triggers a support -> client sync for an updated issue. Must be called only
-     * after the support DB update has succeeded. Sends reference, classification,
-     * status and resolutionComment. Skips silently if a worker is already running
-     * for the same reference (duplicate protection).
-     */
+    //crea el hilo para trabajar con un tiquete
     public void triggerSync(Issue issue) {
         if (issue == null) {
             return;
@@ -75,10 +56,7 @@ public class IssueSyncManager {
         worker.start();
     }
 
-    /**
-     * Called by a worker when it finishes. Frees the in-flight slot and, when the
-     * issue was resolved and the final sync succeeded, stops tracking it.
-     */
+    //llamada que funciona cuando un tiquete termina
     void onWorkerFinished(String reference, boolean resolvedAndSynced) {
         activeWorkers.remove(reference);
         if (resolvedAndSynced) {
@@ -88,7 +66,6 @@ public class IssueSyncManager {
         }
     }
 
-    /** Stops tracking a reference and clears any in-flight worker slot. */
     public void unregister(String reference) {
         if (reference == null) {
             return;

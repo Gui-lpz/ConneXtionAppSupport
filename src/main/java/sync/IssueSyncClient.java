@@ -9,18 +9,9 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Sends support-side issue updates to the client backend through the Gateway.
- *
- * Architecture: support backend -> Gateway -> client internal endpoint.
- * The Gateway must expose the route that forwards to the client side:
- *   add("POST", "client/issues/internal/update", CLIENT_BASE + "/api/issues/internal/update");
- * Until that route exists, calls fail and are logged clearly (the support DB
- * update is already committed and is not affected).
- */
-public class IssueSyncClient {
 
-    // Gateway route that forwards to the client internal update endpoint.
+public class IssueSyncClient {
+    //gateway route para la peticion interna
     public static final String CLIENT_UPDATE_URL =
             "http://localhost:8082/ConneXtion_Gateway/gateway/client/issues/internal/update";
 
@@ -29,10 +20,7 @@ public class IssueSyncClient {
             .build();
     private final ObjectMapper mapper = new ObjectMapper();
 
-    /**
-     * Sends only the shared fields to the client internal update endpoint.
-     * Returns true on a 2xx response, false otherwise (errors are logged, not thrown).
-     */
+    //se envia solo los atributos que comparten
     public boolean sendClientUpdate(String reference, String classification,
                                     String status, String resolutionComment) {
         Map<String, Object> payload = new HashMap<>();
