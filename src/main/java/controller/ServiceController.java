@@ -9,6 +9,7 @@ import javax.servlet.http.*;
 import model.data.IssueData;
 import model.data.ServiceData;
 import model.entities.Issue;
+import sync.IssueSyncManager;
 
 
 @WebServlet("/api/issues/incoming")
@@ -95,6 +96,10 @@ public class ServiceController extends HttpServlet {
             // supporterId / supervisorId queda en 0 (sin asignar)
 
             issueData.add(issue);
+
+            // The issue originated in the client backend: register it for support-side
+            // sync but do NOT sync back (that would create a loop).
+            IssueSyncManager.getInstance().register(reference);
 
             resp.setStatus(HttpServletResponse.SC_CREATED);
             mapper.writeValue(resp.getWriter(),

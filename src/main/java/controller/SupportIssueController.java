@@ -13,6 +13,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import model.data.IssueData;
 import model.entities.Issue;
+import sync.IssueSyncManager;
 
 
 @WebServlet("/api/support/issues/*")
@@ -192,6 +193,11 @@ public class SupportIssueController extends HttpServlet {
             issueData.updateAssignedIssue(issueId, classification, status, resolutionComment);
 
             Issue updated = issueData.findById(issueId);
+
+            // Support DB update succeeded: push the change to the client backend
+            // through the Gateway (async, daemon thread). Resolved issues stop tracking.
+            IssueSyncManager.getInstance().triggerSync(updated);
+
             writeSuccess(resp, out, "Issue updated successfully.", updated);
 
         } catch (Exception e) {
