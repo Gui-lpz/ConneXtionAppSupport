@@ -2,12 +2,6 @@ package sync;
 
 import model.entities.Issue;
 
-/**
- * One-shot worker that pushes a single support issue update to the client
- * backend through the Gateway. Runs as a daemon thread so it never blocks
- * Tomcat shutdown. When the issue is resolved and the final sync succeeds,
- * it asks the manager to stop tracking the reference.
- */
 public class IssueSyncThread extends Thread {
 
     private final IssueSyncManager manager;
@@ -34,8 +28,7 @@ public class IssueSyncThread extends Thread {
                     issue.getStatus(),
                     issue.getResolutionComment());
         } finally {
-            // Free the in-flight slot; if the issue is resolved and the final
-            // sync succeeded, the reference is unregistered completely.
+            //se actualiza el hilo cuando el tiquete termina
             manager.onWorkerFinished(reference, resolved && success);
         }
     }
