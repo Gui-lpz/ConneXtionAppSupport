@@ -307,33 +307,21 @@ public class IssueData {
         return list;
     }
 
-
+    // el supervisor asigna donde fija supporter_id y, si se indica, supervisor_id.
     public void assignIssueBySupervisor(int issueId, int supporterId, Integer supervisorId)
             throws SQLException, ClassNotFoundException {
-
-        String sql;
-
-        if (supervisorId != null) {
-            sql = "UPDATE Issue "
-                    + "SET supporter_id = ?, supervisor_id = ?, status = ? "
-                    + "WHERE id = ?";
-        } else {
-            sql = "UPDATE Issue "
-                    + "SET supporter_id = ?, status = ? "
-                    + "WHERE id = ?";
-        }
+        String sql = (supervisorId != null)
+                ? "UPDATE Issue SET supporter_id=?, supervisor_id=? WHERE id=?"
+                : "UPDATE Issue SET supporter_id=? WHERE id=?";
 
         try (Connection conn = DbConnection_AppSupport.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, supporterId);
-
             if (supervisorId != null) {
                 stmt.setInt(2, supervisorId);
-                stmt.setString(3, "Asignado");
-                stmt.setInt(4, issueId);
-            } else {
-                stmt.setString(2, "Asignado");
                 stmt.setInt(3, issueId);
+            } else {
+                stmt.setInt(2, issueId);
             }
 
             stmt.executeUpdate();
