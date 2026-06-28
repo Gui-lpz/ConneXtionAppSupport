@@ -266,12 +266,63 @@ public class IssueData {
 
         String sql = "UPDATE Issue SET supporter_id=?, status=? WHERE id=?";
 
-        try (Connection conn = DbConnection_AppSupport.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (Connection conn = DbConnection_AppSupport.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, supporterId);
             stmt.setString(2, "Asignado");
             stmt.setInt(3, issueId);
+
+            stmt.executeUpdate();
+        }
+    }
+
+    //tiquetes con null en id supporter
+    public ArrayList<Issue> getSupervisorAvailableIssues(Integer serviceId)
+            throws SQLException, ClassNotFoundException {
+        ArrayList<Issue> list = new ArrayList<>();
+        StringBuilder sql = new StringBuilder()
+                .append("SELECT i.*, s.name AS service_name ")
+                .append("FROM Issue i ")
+                .append("LEFT JOIN Service s ON i.service_id = s.id ")
+                .append("WHERE i.supporter_id IS NULL ")
+                .append("AND ").append(CLOSED_STATUS_FILTER).append(" ");
+        if (serviceId != null) {
+            sql.append("AND i.service_id = ? ");
+        }
+        sql.append("ORDER BY i.issue_timestamp ASC");
+
+        try (Connection conn = DbConnection_AppSupport.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
+
+            if (serviceId != null) {
+                stmt.setInt(1, serviceId);
+            }
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    list.add(map(rs));
+                }
+            }
+        }
+
+        return list;
+    }
+
+    // el supervisor asigna donde fija supporter_id y, si se indica, supervisor_id.
+    public void assignIssueBySupervisor(int issueId, int supporterId, Integer supervisorId)
+            throws SQLException, ClassNotFoundException {
+        String sql = (supervisorId != null)
+                ? "UPDATE Issue SET supporter_id=?, supervisor_id=? WHERE id=?"
+                : "UPDATE Issue SET supporter_id=? WHERE id=?";
+
+        try (Connection conn = DbConnection_AppSupport.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, supporterId);
+            if (supervisorId != null) {
+                stmt.setInt(2, supervisorId);
+                stmt.setInt(3, issueId);
+            } else {
+                stmt.setInt(2, issueId);
+            }
 
             stmt.executeUpdate();
         }
@@ -341,28 +392,26 @@ public class IssueData {
 
         return list;
     }
-    
+
     public ArrayList<Issue> getNewUnassignedIssues()
-        throws SQLException, ClassNotFoundException {
+            throws SQLException, ClassNotFoundException {
 
-    ArrayList<Issue> list = new ArrayList<>();
+        ArrayList<Issue> list = new ArrayList<>();
 
-    String sql = "SELECT i.*, s.name AS service_name "
-            + "FROM Issue i "
-            + "LEFT JOIN Service s ON i.service_id = s.id "
-            + "WHERE i.status = 'Ingresado' "
-            + "AND i.supporter_id IS NULL "
-            + "ORDER BY i.issue_timestamp ASC";
+        String sql = "SELECT i.*, s.name AS service_name "
+                + "FROM Issue i "
+                + "LEFT JOIN Service s ON i.service_id = s.id "
+                + "WHERE i.status = 'Ingresado' "
+                + "AND i.supporter_id IS NULL "
+                + "ORDER BY i.issue_timestamp ASC";
 
-    try (Connection conn = DbConnection_AppSupport.getConnection();
-         PreparedStatement stmt = conn.prepareStatement(sql);
-         ResultSet rs = stmt.executeQuery()) {
+        try (Connection conn = DbConnection_AppSupport.getConnection(); PreparedStatement stmt = conn.prepareStatement(sql); ResultSet rs = stmt.executeQuery()) {
 
-        while (rs.next()) {
-            list.add(map(rs));
+            while (rs.next()) {
+                list.add(map(rs));
+            }
         }
-    }
 
-    return list;
-}
+        return list;
+    }
 }
